@@ -244,6 +244,8 @@ pub enum VarType {
     EvCarLikely,
     /// How likely the province to be select
     SelectLikely,
+    SubSolarPeekMw,
+    SubSolarEnergy,
 }
 
 #[derive(Encode, Decode, Debug, Clone, Default)]
@@ -956,8 +958,8 @@ pub fn chk_02_1(
             };
             let vp01 = prov.evpc;
             let vp02 = prov.gppv;
-            let evlk = *EV_LIKELY.get(&pid).unwrap_or(&0f32);
-            let selk = *SELE_LIKELY.get(&pid).unwrap_or(&0f32);
+            let evlk = *EV_LIKELY.get(pid).unwrap_or(&0f32);
+            let selk = *SELE_LIKELY.get(pid).unwrap_or(&0f32);
 
             println!("  pv:{pid}");
             let mut sids: Vec<_> = prov.subm.keys().collect();
@@ -996,6 +998,17 @@ pub fn chk_02_1(
                         vs02 = vs02.max(v.unwrap_or(0f32));
                     }
                 };
+                // LP24 - Phase
+                ////////////////////////////
+                if let Some(lp) = e0.lp24.get(sid) {
+                    if let Some(lp) = &lp.pos_rep.val {
+                        //
+                    }
+                }
+                // LP23 - Phase
+                ////////////////////////////
+
+                //  VSPP, SPP, RE plan
                 let mut vs03 = 0f32;
                 for pi in &sub.vspps {
                     vs03 += eg.vsps[*pi].kw.unwrap_or(0f32);

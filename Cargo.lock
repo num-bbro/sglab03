@@ -3232,6 +3232,7 @@ dependencies = [
  "image 0.25.6",
  "imageproc",
  "iterstats",
+ "num",
  "phf 0.12.1",
  "phf_macros 0.12.1",
  "regex",
