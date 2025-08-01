@@ -15,6 +15,7 @@ use regex::Regex;
 use std::f64::consts::PI;
 const FK1_RT_SOLA: f32 = 0.15;
 const BIGGER_RATIO: f32 = 1.5;
+const BASE_OVER_RATE: f32 = 0.5;
 
 pub fn p08_draw_01(yr: &str, _sb: &str) -> Result<(), Box<dyn Error>> {
     let fnm = format!("/mnt/e/CHMBACK/pea-data/data2/p03_lp_repr_{yr}.bin");
@@ -148,12 +149,8 @@ pub fn p08_draw_01(yr: &str, _sb: &str) -> Result<(), Box<dyn Error>> {
                     //if rt1 > 0.2 && en2 > 0.0 && ffk[1].re > 0.1 && ang > -70.0 && ang < 30.0 {
                     gp = "G2";
                 }
-                if gp == "G2" && enb > 0.0 && bor > 0.3 {
+                if gp == "G2" && enb > 0.0 && bor > BASE_OVER_RATE {
                     gp = "G3";
-                }
-                if gp == "GZ" && enb > 0.0 && bor > 0.5 && (pt3 + pt4) / (pt1 + pt2) > BIGGER_RATIO
-                {
-                    gp = "G4";
                 }
                 let pt0 = pt1 > 0.0 && pt2 > 0.0 && pt3 > 0.0 && pt4 > 0.0;
                 if gp == "GZ" && pt0 && (pt1 + pt2) / (pt3 + pt4) > BIGGER_RATIO {
@@ -176,6 +173,9 @@ pub fn p08_draw_01(yr: &str, _sb: &str) -> Result<(), Box<dyn Error>> {
                 }
                 if gp == "G1" && fk1 >= FK1_RT_SOLA.into() && ang < -150.0 && ang > -210.0 {
                     gp = "GB";
+                }
+                if gp == "GZ" && enb > 0.0 && bor > BASE_OVER_RATE {
+                    gp = "G4";
                 }
                 let mut rc = [0f64; 96];
                 if gp == "G2" || gp == "G3" {
@@ -600,26 +600,26 @@ pub enum ProfType {
 
 #[derive(Encode, Decode, Debug, Clone, Default)]
 pub struct ProfInfo {
-    feed: String,
-    val: Vec<f32>,
-    lp_type: ProfType,
-    all_en: f32,
-    pos_en: f32,
-    neg_en: f32,
-    max_pw: f32,
-    min_pw: f32,
-    dif_pw: f32,
-    fk0_re: f32,
-    fk1_re: f32,
-    fk1_mg: f32,
-    fk1_an: f32,
-    ngt_av: f32,
-    bas_en: f32,
-    ovr_en: f32,
-    ovr_rt: f32,
-    sol_pk: Option<f32>,
-    sol_en: Option<f32>,
-    solar: Option<Vec<f32>>,
+    pub feed: String,
+    pub val: Vec<f32>,
+    pub lp_type: ProfType,
+    pub all_en: f32,
+    pub pos_en: f32,
+    pub neg_en: f32,
+    pub max_pw: f32,
+    pub min_pw: f32,
+    pub dif_pw: f32,
+    pub fk0_re: f32,
+    pub fk1_re: f32,
+    pub fk1_mg: f32,
+    pub fk1_an: f32,
+    pub ngt_av: f32,
+    pub bas_en: f32,
+    pub ovr_en: f32,
+    pub ovr_rt: f32,
+    pub sol_pk: Option<f32>,
+    pub sol_en: Option<f32>,
+    pub solar: Option<Vec<f32>>,
 }
 
 pub fn p08_class_val(lpv: &[Option<f32>; DAY_VAL_PNTS]) -> Result<ProfInfo, Box<dyn Error>> {
@@ -636,7 +636,7 @@ pub fn p08_class_val(lpv: &[Option<f32>; DAY_VAL_PNTS]) -> Result<ProfInfo, Box<
         }
     }
     let nc: Vec<_> = lpr.iter().flatten().map(|v| *v).collect();
-    let mx = lpr.iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
+    //let mx = lpr.iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
     //println!(" x:{mx:?}");
     if nc.len() == lpr.len() {
         //print!("    F:");
@@ -725,15 +725,8 @@ pub fn p08_class_val(lpv: &[Option<f32>; DAY_VAL_PNTS]) -> Result<ProfInfo, Box<
         if en2 > 0.0 && fk1 >= FK1_RT_SOLA.into() && ang > -70.0 && ang < 30.0 {
             lptp = ProfType::SolarPower;
         }
-        if lptp == ProfType::SolarPower && enb > 0.0 && bor > 0.3 {
+        if lptp == ProfType::SolarPower && enb > 0.0 && bor > BASE_OVER_RATE {
             lptp = ProfType::SolarNight;
-        }
-        if lptp == ProfType::Unknown
-            && enb > 0.0
-            && bor > 0.5
-            && (pt3 + pt4) / (pt1 + pt2) > BIGGER_RATIO
-        {
-            lptp = ProfType::Night;
         }
         let pt0 = pt1 > 0.0 && pt2 > 0.0 && pt3 > 0.0 && pt4 > 0.0;
         if lptp == ProfType::Unknown && pt0 && (pt1 + pt2) / (pt3 + pt4) > BIGGER_RATIO {
@@ -757,6 +750,13 @@ pub fn p08_class_val(lpv: &[Option<f32>; DAY_VAL_PNTS]) -> Result<ProfInfo, Box<
         if lptp == ProfType::Injection && fk1 >= FK1_RT_SOLA.into() && ang < -150.0 && ang > -210.0
         {
             lptp = ProfType::InjectSolar;
+        }
+        if lptp == ProfType::Unknown
+            && enb > 0.0
+            && bor > BASE_OVER_RATE
+            && (pt3 + pt4) / (pt1 + pt2) > BIGGER_RATIO
+        {
+            lptp = ProfType::Night;
         }
         let mut rc = [0f64; 96];
         //if [ProfType::SolarPower, ProfType::SolarNight].contains(lptp) {
@@ -888,6 +888,233 @@ pub fn p08_calc_lp1(yr: &str) -> Result<(), Box<dyn Error>> {
                                 val[i] = Some(*v);
                             }
                             let dnm = format!( "/mnt/e/CHMBACK/pea-data/p08sol/{yr}/{s}-{f}/{di:03}_{mon:02}-{mdt:02}");
+                            std::fs::create_dir_all(&dnm)?;
+                            let fnm = format!("{dnm}/solar.jpg");
+                            println!("{lb1} {lb2} -> {fnm}");
+                            let sz = (400, 300);
+                            let rf = Vec::<(String, f32)>::new();
+                            let drlp = LoadProf {
+                                lb1,
+                                lb2,
+                                fnm,
+                                val,
+                                sz,
+                                rf,
+                            };
+                            let Ok(_) = drlp.draw_prof() else {
+                                continue;
+                            };
+
+                            if [4, 5].contains(&dlp.mon) {
+                                lpv345.push(lpf);
+                            } else if [6, 7].contains(&dlp.mon) {
+                                lpv678.push(lpf);
+                            }
+                        }
+                        //println!("    {i}. m:{} d:{} tp:{:?}", dlp.mon, dlp.mdt, lpf.lp_type);
+                    } else {
+                        //println!("    {i}. Error m:{} d:{}", dlp.mon, dlp.mdt);
+                    }
+                } else {
+                    //println!("    {i}. ============");
+                }
+            }
+            if lpv345.len() > 5 && lpv678.len() > 5 {
+                let n1 = lpv345.len() as f32;
+                let n2 = lpv678.len() as f32;
+                let e1: f32 = lpv345.iter().filter_map(|p| p.sol_en).sum();
+                let e2: f32 = lpv678.iter().filter_map(|p| p.sol_en).sum();
+                let e1 = -e1 / n1;
+                let e2 = -e2 / n2;
+                n1w += if e1 > e2 { 1 } else { 0 };
+                n2w += if e1 < e2 { 1 } else { 0 };
+                n1e += e1;
+                n2e += e2;
+                println!("{s} - {f} t1:{e1:?} t2:{e2:?}");
+            }
+        }
+    }
+    println!("n1w:{n1w} n2w:{n2w} n1e:{n1e} n2e:{n2e}");
+    Ok(())
+}
+
+pub fn p08_calc_lp2(yr: &str, sb: &str) -> Result<(), Box<dyn Error>> {
+    let fnm = format!("/mnt/e/CHMBACK/pea-data/data2/p02_sub_lp_{yr}.bin");
+    let bytes = std::fs::read(fnm).unwrap();
+    let (subh, _): (HashMap<String, SubLoadProf>, usize) =
+        bincode::decode_from_slice(&bytes[..], bincode::config::standard()).unwrap();
+    //let mut mon_fdldp = HashMap::<usize,F
+    let (mut n1w, mut n2w) = (0, 0);
+    let (mut n1e, mut n2e) = (0.0, 0.0);
+    let s = sb.to_string();
+    if let Some(sub) = subh.get(&s) {
+        if let Some(_ldpf) = &sub.ldpf {
+            //
+        }
+        for ldpf in sub.fdldp.values() {
+            let f = &ldpf.feed;
+            let mut lpv345 = Vec::<ProfInfo>::new();
+            let mut lpv678 = Vec::<ProfInfo>::new();
+            for (di, dlp) in ldpf.days.iter().enumerate() {
+                if let Some(dlp) = dlp {
+                    if let Ok(lpf) = p08_class_val(&dlp.val) {
+                        if lpf.lp_type == ProfType::SolarPower
+                            || lpf.lp_type == ProfType::SolarNight
+                        {
+                            /////////////////////////////////////
+                            let mut val = [None; 96];
+                            let lb1 = format!("{s}-{f}");
+                            let mon = dlp.mon;
+                            let mdt = dlp.mdt;
+                            let lb2 = format!("{yr}-{mon:02}-{mdt:02}");
+                            for (i, v) in lpf.val.iter().enumerate() {
+                                val[i] = Some(*v);
+                            }
+                            let dnm = format!( "/mnt/e/CHMBACK/pea-data/p08sol2/{yr}/{s}-{f}/{di:03}_{mon:02}-{mdt:02}");
+                            std::fs::create_dir_all(&dnm)?;
+                            let fnm = format!("{dnm}/prof.jpg");
+                            println!("{lb1} {lb2} -> {fnm}");
+                            let sz = (400, 300);
+                            let rf = Vec::<(String, f32)>::new();
+                            let drlp = LoadProf {
+                                lb1,
+                                lb2,
+                                fnm,
+                                val,
+                                sz,
+                                rf,
+                            };
+                            let Ok(_) = drlp.draw_prof() else {
+                                continue;
+                            };
+
+                            /////////////////////////////////////
+                            let mut val = [None; 96];
+                            let lb1 = format!("{s}-{f} Solar");
+                            let mon = dlp.mon;
+                            let mdt = dlp.mdt;
+                            let lb2 = format!("{yr}-{mon:02}-{mdt:02}");
+                            let Some(solar) = &lpf.solar else {
+                                continue;
+                            };
+                            for (i, v) in solar.iter().enumerate() {
+                                val[i] = Some(*v);
+                            }
+                            let dnm = format!( "/mnt/e/CHMBACK/pea-data/p08sol2/{yr}/{s}-{f}/{di:03}_{mon:02}-{mdt:02}");
+                            std::fs::create_dir_all(&dnm)?;
+                            let fnm = format!("{dnm}/solar.jpg");
+                            println!("{lb1} {lb2} -> {fnm}");
+                            let sz = (400, 300);
+                            let rf = Vec::<(String, f32)>::new();
+                            let drlp = LoadProf {
+                                lb1,
+                                lb2,
+                                fnm,
+                                val,
+                                sz,
+                                rf,
+                            };
+                            let Ok(_) = drlp.draw_prof() else {
+                                continue;
+                            };
+
+                            if [4, 5].contains(&dlp.mon) {
+                                lpv345.push(lpf);
+                            } else if [6, 7].contains(&dlp.mon) {
+                                lpv678.push(lpf);
+                            }
+                        }
+                        //println!("    {i}. m:{} d:{} tp:{:?}", dlp.mon, dlp.mdt, lpf.lp_type);
+                    } else {
+                        //println!("    {i}. Error m:{} d:{}", dlp.mon, dlp.mdt);
+                    }
+                } else {
+                    //println!("    {i}. ============");
+                }
+            }
+            if lpv345.len() > 5 && lpv678.len() > 5 {
+                let n1 = lpv345.len() as f32;
+                let n2 = lpv678.len() as f32;
+                let e1: f32 = lpv345.iter().filter_map(|p| p.sol_en).sum();
+                let e2: f32 = lpv678.iter().filter_map(|p| p.sol_en).sum();
+                let e1 = -e1 / n1;
+                let e2 = -e2 / n2;
+                n1w += if e1 > e2 { 1 } else { 0 };
+                n2w += if e1 < e2 { 1 } else { 0 };
+                n1e += e1;
+                n2e += e2;
+                println!("{s} - {f} t1:{e1:?} t2:{e2:?}");
+            }
+        }
+    }
+    println!("n1w:{n1w} n2w:{n2w} n1e:{n1e} n2e:{n2e}");
+    Ok(())
+}
+
+pub fn p08_calc_lp3(yr: &str) -> Result<(), Box<dyn Error>> {
+    let fnm = format!("/mnt/e/CHMBACK/pea-data/data2/p02_sub_lp_{yr}.bin");
+    let bytes = std::fs::read(fnm).unwrap();
+    let (subh, _): (HashMap<String, SubLoadProf>, usize) =
+        bincode::decode_from_slice(&bytes[..], bincode::config::standard()).unwrap();
+    //let mut mon_fdldp = HashMap::<usize,F
+    let (mut n1w, mut n2w) = (0, 0);
+    let (mut n1e, mut n2e) = (0.0, 0.0);
+    //let s = sb.to_string();
+    for (s, sub) in subh {
+        //if let Some(sub) = subh.get(&s) {
+        if let Some(_ldpf) = &sub.ldpf {
+            //
+        }
+        for ldpf in sub.fdldp.values() {
+            let f = &ldpf.feed;
+            let mut lpv345 = Vec::<ProfInfo>::new();
+            let mut lpv678 = Vec::<ProfInfo>::new();
+            for (di, dlp) in ldpf.days.iter().enumerate() {
+                if let Some(dlp) = dlp {
+                    if let Ok(lpf) = p08_class_val(&dlp.val) {
+                        if lpf.lp_type == ProfType::SolarPower
+                            || lpf.lp_type == ProfType::SolarNight
+                        {
+                            /////////////////////////////////////
+                            let mut val = [None; 96];
+                            let lb1 = format!("{s}-{f}");
+                            let mon = dlp.mon;
+                            let mdt = dlp.mdt;
+                            let lb2 = format!("{yr}-{mon:02}-{mdt:02}");
+                            for (i, v) in lpf.val.iter().enumerate() {
+                                val[i] = Some(*v);
+                            }
+                            let dnm = format!( "/mnt/e/CHMBACK/pea-data/p08sol2/{yr}/{s}-{f}/{di:03}_{mon:02}-{mdt:02}");
+                            std::fs::create_dir_all(&dnm)?;
+                            let fnm = format!("{dnm}/prof.jpg");
+                            println!("{lb1} {lb2} -> {fnm}");
+                            let sz = (400, 300);
+                            let rf = Vec::<(String, f32)>::new();
+                            let drlp = LoadProf {
+                                lb1,
+                                lb2,
+                                fnm,
+                                val,
+                                sz,
+                                rf,
+                            };
+                            let Ok(_) = drlp.draw_prof() else {
+                                continue;
+                            };
+
+                            /////////////////////////////////////
+                            let mut val = [None; 96];
+                            let lb1 = format!("{s}-{f} Solar");
+                            let mon = dlp.mon;
+                            let mdt = dlp.mdt;
+                            let lb2 = format!("{yr}-{mon:02}-{mdt:02}");
+                            let Some(solar) = &lpf.solar else {
+                                continue;
+                            };
+                            for (i, v) in solar.iter().enumerate() {
+                                val[i] = Some(*v);
+                            }
+                            let dnm = format!( "/mnt/e/CHMBACK/pea-data/p08sol2/{yr}/{s}-{f}/{di:03}_{mon:02}-{mdt:02}");
                             std::fs::create_dir_all(&dnm)?;
                             let fnm = format!("{dnm}/solar.jpg");
                             println!("{lb1} {lb2} -> {fnm}");

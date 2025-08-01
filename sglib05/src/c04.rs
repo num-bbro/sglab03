@@ -246,6 +246,7 @@ pub enum VarType {
     SelectLikely,
     SubSolarPeekMw,
     SubSolarEnergy,
+    SolarEnergy,
 }
 
 #[derive(Encode, Decode, Debug, Clone, Default)]
@@ -897,6 +898,8 @@ pub fn c04_chk_lp_01() -> Result<(), Box<dyn Error>> {
 }
 
 use crate::p01::p01_chk;
+use crate::p08::p08_class_val;
+use crate::p08::ProfType;
 
 pub fn chk_02_1(
     aids: &Vec<&String>,
@@ -1000,8 +1003,17 @@ pub fn chk_02_1(
                 };
                 // LP24 - Phase
                 ////////////////////////////
+                let mut solar = 0f32;
                 if let Some(lp) = e0.lp24.get(sid) {
                     if let Some(lp) = &lp.pos_rep.val {
+                        if let Ok(lpf) = p08_class_val(lp) {
+                            if lpf.lp_type == ProfType::SolarPower
+                                || lpf.lp_type == ProfType::SolarNight
+                            {
+                                solar = lpf.sol_en.unwrap_or(0f32);
+                            }
+                        }
+                        //
                         //
                     }
                 }
@@ -1317,7 +1329,7 @@ pub fn chk_02_1(
                         tr_as.v[VarType::CntTrSatLoss as usize].v = v_max_cnt;
                         tr_as.v[VarType::EvCarLikely as usize].v = evlk;
                         tr_as.v[VarType::SelectLikely as usize].v = selk;
-
+                        tr_as.v[VarType::SolarEnergy as usize].v = solar;
                         tras_mx1.max(&tr_as);
                         //s_tr_sum.add(&tr_as);
                         s_tr_ass.push(tr_as);
@@ -1346,20 +1358,21 @@ pub fn chk_02_2(
     // EV Weight
     let mut we_ev = PeaAssVar::from(0u64);
     we_ev.v[VarType::NewCarRegVp01 as usize].v = 0.20;
-    we_ev.v[VarType::GppVp02 as usize].v = 0.05;
-    we_ev.v[VarType::NoMeterTransVt01 as usize].v = 0.20;
-    we_ev.v[VarType::SmallSellTrVt02 as usize].v = 0.15;
+    we_ev.v[VarType::GppVp02 as usize].v = 0.20;
+    we_ev.v[VarType::NoMeterTransVt01 as usize].v = 0.05;
+    we_ev.v[VarType::SmallSellTrVt02 as usize].v = 0.30;
     we_ev.v[VarType::ChgStnCapTrVt03 as usize].v = 0.15;
-    we_ev.v[VarType::ChgStnSellTrVt04 as usize].v = 0.05;
-    we_ev.v[VarType::PwCapTriVt05 as usize].v = 0.10;
-    we_ev.v[VarType::ZoneTrVt06 as usize].v = 0.05;
-    we_ev.v[VarType::PopTrVt07 as usize].v = 0.05;
-    we_ev.v[VarType::EvCarLikely as usize].v = 0.10;
+    we_ev.v[VarType::ChgStnSellTrVt04 as usize].v = 0.15;
+    we_ev.v[VarType::PwCapTriVt05 as usize].v = 0.00;
+    we_ev.v[VarType::ZoneTrVt06 as usize].v = 0.20;
+    we_ev.v[VarType::PopTrVt07 as usize].v = 0.10;
+    we_ev.v[VarType::EvCarLikely as usize].v = 0.00;
 
     //////////////////////////////////////////////
     // Solar Weight
     let mut we_so = PeaAssVar::from(0u64);
-    we_so.v[VarType::GppVp02 as usize].v = 0.10;
+    we_so.v[VarType::GppVp02 as usize].v = 0.20;
+    /*
     we_so.v[VarType::MaxPosPowSubVs01 as usize].v = 0.02;
     we_so.v[VarType::MaxNegPowSubVs02 as usize].v = 0.02;
     we_so.v[VarType::VsppMvVs03 as usize].v = 0.02;
@@ -1367,11 +1380,12 @@ pub fn chk_02_2(
     we_so.v[VarType::BigLotMvVs05 as usize].v = 0.02;
     we_so.v[VarType::MaxNegPowFeederVf02 as usize].v = 0.05;
     we_so.v[VarType::MaxPosDiffFeederVf03 as usize].v = 0.05;
-    we_so.v[VarType::NoMeterTransVt01 as usize].v = 0.20;
-    we_so.v[VarType::SmallSellTrVt02 as usize].v = 0.20;
-    we_so.v[VarType::PwCapTriVt05 as usize].v = 0.20;
-    we_so.v[VarType::ZoneTrVt06 as usize].v = 0.05;
-    we_so.v[VarType::PopTrVt07 as usize].v = 0.05;
+    */
+    we_so.v[VarType::NoMeterTransVt01 as usize].v = 0.05;
+    we_so.v[VarType::SmallSellTrVt02 as usize].v = 0.30;
+    //we_so.v[VarType::PwCapTriVt05 as usize].v = 0.20;
+    we_so.v[VarType::ZoneTrVt06 as usize].v = 0.20;
+    we_so.v[VarType::PopTrVt07 as usize].v = 0.10;
 
     for id in aids {
         let aid = id.to_string();
@@ -1509,19 +1523,19 @@ pub fn chk_02_3(
     let mut we_uc1 = PeaAssVar::from(0u64);
     we_uc1.v[VarType::SmallSellTrVt02 as usize].v = 0.05;
     we_uc1.v[VarType::LargeSellTrVt10 as usize].v = 0.05;
-    we_uc1.v[VarType::HmChgEvTrVc01 as usize].v = 0.06;
-    we_uc1.v[VarType::ZoneTrVt06 as usize].v = 0.07;
-    we_uc1.v[VarType::PopTrVt07 as usize].v = 0.07;
+    we_uc1.v[VarType::HmChgEvTrVc01 as usize].v = 0.30;
     we_uc1.v[VarType::CntLvPowSatTrVc03 as usize].v = 0.15;
     we_uc1.v[VarType::ChgStnCapVc04 as usize].v = 0.05;
     we_uc1.v[VarType::ChgStnSellVc05 as usize].v = 0.05;
     we_uc1.v[VarType::MvPowSatTrVc06 as usize].v = 0.05;
     we_uc1.v[VarType::PowSolarVc07 as usize].v = 0.15;
+    we_uc1.v[VarType::ZoneTrVt06 as usize].v = 0.05;
+    we_uc1.v[VarType::PopTrVt07 as usize].v = 0.05;
     we_uc1.v[VarType::MvVsppVc08 as usize].v = 0.05;
     we_uc1.v[VarType::HvSppVc09 as usize].v = 0.05;
     we_uc1.v[VarType::UnbalPowVc12 as usize].v = 0.10;
     we_uc1.v[VarType::CntUnbalPowVc13 as usize].v = 0.05;
-    we_uc1.v[VarType::SelectLikely as usize].v = 0.20;
+    we_uc1.v[VarType::SelectLikely as usize].v = 0.00;
 
     let mut we_uc2 = PeaAssVar::from(0u64);
     we_uc2.v[VarType::SmallSellTrVt02 as usize].v = 0.05;
@@ -1536,7 +1550,7 @@ pub fn chk_02_3(
     we_uc2.v[VarType::HvSppVc09 as usize].v = 0.10;
     we_uc2.v[VarType::UnbalPowVc12 as usize].v = 0.05;
     we_uc2.v[VarType::CntUnbalPowVc13 as usize].v = 0.05;
-    we_uc2.v[VarType::SelectLikely as usize].v = 0.20;
+    we_uc2.v[VarType::SelectLikely as usize].v = 0.10;
 
     let mut we_uc3 = PeaAssVar::from(0u64);
     we_uc3.v[VarType::SmallSellTrVt02 as usize].v = 0.10;
@@ -1778,6 +1792,7 @@ fn write_trn_ass_02(tr_as: &Vec<PeaAssVar>, fnm: &str) -> Result<String, Box<dyn
         VarType::TakeNote,
         VarType::CntTrUnbalLoss,
         VarType::CntTrSatLoss,
+        VarType::SolarEnergy,
     ];
     write_text_02(tr_as, &flds, fnm)
 }
@@ -1901,6 +1916,12 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
                 sbas.copy(tras, VarType::BigLotMvVs05);
                 sbas.copy(tras, VarType::BigLotHvVs06);
                 sbas.copy(tras, VarType::SubPowCapVs07);
+                sbas.copy(tras, VarType::SolarEnergy);
+                let solar = sbas.v[VarType::SolarEnergy as usize].v;
+                if solar > 0f32 {
+                    println!(">>>>>>>>>>> {sid} solar: {solar} =============");
+                }
+
                 sbas.v[VarType::TakeNote as usize].v = note;
                 sbas_mx.max(&sbas);
                 pvas.add(&sbas);
@@ -2146,6 +2167,7 @@ fn write_ass_csv_02(tr_as: &Vec<PeaAssVar>, fnm: &str) -> Result<String, Box<dyn
         VarType::Uc3RankVc19,
         VarType::NoHmChgEvTr,
         VarType::PowHmChgEvTr,
+        VarType::SolarEnergy,
     ];
     write!(x, "\"SUB\"")?;
     write!(x, ",\"PROV\"")?;
