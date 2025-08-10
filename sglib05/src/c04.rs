@@ -434,6 +434,8 @@ use crate::p01::trf_kva_2_kw;
 use sglib04::geo4::PowerProdType;
 use sglib04::geo4::GPPS;
 
+pub const DNM: &str = "/mnt/e/CHMBACK/pea-data/c01_pea";
+
 ///
 /// g0 = ProcEngine::prep1();
 ///
@@ -460,10 +462,10 @@ use sglib04::geo4::GPPS;
 /// std::fs::write(format!("{dnm}/{}.bin", sb.sbid), bin)
 ///
 pub fn c01_chk_01() -> Result<(), Box<dyn Error>> {
-    let dnm = "/mnt/e/CHMBACK/pea-data/c01_pea";
+    //let dnm = "/mnt/e/CHMBACK/pea-data/c01_pea";
     let g0 = ProcEngine::prep5();
-    let pea = c01_chk_01_01(dnm, &g0)?;
-    c01_chk_01_02(&pea, dnm, &g0)?;
+    let pea = c01_chk_01_01(DNM, &g0)?;
+    c01_chk_01_02(&pea, DNM, &g0)?;
     Ok(())
 }
 
@@ -781,8 +783,7 @@ impl PeaAssVar {
 /// read SSS.bin
 /// write
 pub fn c01_chk_02() -> Result<(), Box<dyn Error>> {
-    let dnm = "/mnt/e/CHMBACK/pea-data/c01_pea";
-    let buf = std::fs::read(format!("{dnm}/000_pea.bin")).unwrap();
+    let buf = std::fs::read(format!("{DNM}/000_pea.bin")).unwrap();
     let (pea, _): (Pea, usize) =
         bincode::decode_from_slice(&buf[..], bincode::config::standard()).unwrap();
     println!("pea ar:{}", pea.aream.len());
@@ -793,17 +794,21 @@ pub fn c01_chk_02() -> Result<(), Box<dyn Error>> {
     let mut tras_mx1 = PeaAssVar::from(0u64);
     let mut tras_mx2 = PeaAssVar::from(0u64);
     let mut tras_sm2 = PeaAssVar::from(0u64);
-    chk_02_1(&aids, &pea, dnm, &mut tras_mx1)?;
-    chk_02_2(&aids, &pea, dnm, &tras_mx1, &mut tras_mx2, &mut tras_sm2)?;
-    chk_02_3(&aids, &pea, dnm, &tras_mx2, &tras_sm2)?;
+    chk_02_1(&aids, &pea, DNM, &mut tras_mx1)?;
+    chk_02_2(&aids, &pea, DNM, &tras_mx1, &mut tras_mx2, &mut tras_sm2)?;
+    chk_02_3(&aids, &pea, DNM, &tras_mx2, &tras_sm2)?;
+    let maxs = vec![tras_mx1, tras_mx2, tras_sm2];
+    let bin: Vec<u8> = bincode::encode_to_vec(&maxs, bincode::config::standard()).unwrap();
+    std::fs::write(format!("{DNM}/pea-mx.bin"), bin).unwrap();
+
     Ok(())
 }
 
 use iterstats::Iterstats;
 
 pub fn c04_chk_lp_01() -> Result<(), Box<dyn Error>> {
-    let dnm = "/mnt/e/CHMBACK/pea-data/c01_pea";
-    let buf = std::fs::read(format!("{dnm}/000_pea.bin")).unwrap();
+    //let dnm = "/mnt/e/CHMBACK/pea-data/c01_pea";
+    let buf = std::fs::read(format!("{DNM}/000_pea.bin")).unwrap();
     let (pea, _): (Pea, usize) =
         bincode::decode_from_slice(&buf[..], bincode::config::standard()).unwrap();
     println!("pea ar:{}", pea.aream.len());
@@ -986,7 +991,7 @@ pub fn chk_02_1(
                 };
                 let (sub, _): (PeaSub, usize) =
                     bincode::decode_from_slice(&buf[..], bincode::config::standard()).unwrap();
-                println!("      feed: {}", sub.feeders.len());
+                //println!("      feed: {}", sub.feeders.len());
 
                 // Substation
                 //=====================================================
@@ -1342,8 +1347,8 @@ pub fn chk_02_1(
                         s_tr_ass.push(tr_as);
                     } // end trans loop
                 } // end feeder loop
-                write_trn_ass_01(&s_tr_ass, &format!("{dnm}/{sid}-raw0.txt"))?;
-                write_ass_csv_01(&s_tr_ass, &format!("{dnm}/{sid}-raw0.csv"))?;
+                  //write_trn_ass_01(&s_tr_ass, &format!("{dnm}/{sid}-raw0.txt"))?;
+                  //write_ass_csv_01(&s_tr_ass, &format!("{dnm}/{sid}-raw0.csv"))?;
                 let bin: Vec<u8> =
                     bincode::encode_to_vec(&s_tr_ass, bincode::config::standard()).unwrap();
                 std::fs::write(format!("{dnm}/{sid}-raw.bin"), bin).unwrap();
@@ -1352,6 +1357,76 @@ pub fn chk_02_1(
     } // end area
     Ok(())
 }
+
+pub const WE_EV: [(VarType, f32); 8] = [
+    (VarType::NewCarRegVp01, 0.20),
+    (VarType::GppVp02, 0.20),
+    (VarType::NoMeterTransVt01, 0.05),
+    (VarType::SmallSellTrVt02, 0.30),
+    (VarType::ChgStnCapTrVt03, 0.15),
+    (VarType::ChgStnSellTrVt04, 0.15),
+    (VarType::ZoneTrVt06, 0.20),
+    (VarType::PopTrVt07, 0.10),
+];
+
+pub const WE_RE: [(VarType, f32); 5] = [
+    (VarType::GppVp02, 0.20),
+    (VarType::NoMeterTransVt01, 0.05),
+    (VarType::SmallSellTrVt02, 0.30),
+    (VarType::ZoneTrVt06, 0.20),
+    (VarType::PopTrVt07, 0.10),
+];
+
+pub const WE_UC1: [(VarType, f32); 15] = [
+    //(VarType::GppVp02, 0.20),
+    (VarType::SmallSellTrVt02, 0.05),
+    (VarType::LargeSellTrVt10, 0.05),
+    (VarType::HmChgEvTrVc01, 0.30),
+    (VarType::CntLvPowSatTrVc03, 0.15),
+    (VarType::ChgStnCapVc04, 0.05),
+    (VarType::ChgStnSellVc05, 0.05),
+    (VarType::MvPowSatTrVc06, 0.05),
+    (VarType::PowSolarVc07, 0.15),
+    (VarType::ZoneTrVt06, 0.05),
+    (VarType::PopTrVt07, 0.05),
+    (VarType::MvVsppVc08, 0.05),
+    (VarType::HvSppVc09, 0.05),
+    (VarType::UnbalPowVc12, 0.10),
+    (VarType::CntUnbalPowVc13, 0.05),
+    (VarType::SelectLikely, 0.00),
+];
+
+pub const WE_UC2: [(VarType, f32); 13] = [
+    (VarType::SmallSellTrVt02, 0.05),
+    (VarType::LargeSellTrVt10, 0.10),
+    (VarType::HmChgEvTrVc01, 0.05),
+    (VarType::CntLvPowSatTrVc03, 0.05),
+    (VarType::ChgStnCapVc04, 0.10),
+    (VarType::ChgStnSellVc05, 0.10),
+    (VarType::MvPowSatTrVc06, 0.15),
+    (VarType::PowSolarVc07, 0.05),
+    (VarType::MvVsppVc08, 0.15),
+    (VarType::HvSppVc09, 0.10),
+    (VarType::UnbalPowVc12, 0.05),
+    (VarType::CntUnbalPowVc13, 0.05),
+    (VarType::SelectLikely, 0.10),
+];
+
+pub const WE_UC3: [(VarType, f32); 13] = [
+    (VarType::SmallSellTrVt02, 0.10),
+    (VarType::LargeSellTrVt10, 0.05),
+    (VarType::HmChgEvTrVc01, 0.15),
+    (VarType::CntLvPowSatTrVc03, 0.15),
+    (VarType::ChgStnCapVc04, 0.05),
+    (VarType::ChgStnSellVc05, 0.05),
+    (VarType::MvPowSatTrVc06, 0.05),
+    (VarType::PowSolarVc07, 0.15),
+    (VarType::MvVsppVc08, 0.05),
+    (VarType::HvSppVc09, 0.05),
+    (VarType::UnbalPowVc12, 0.10),
+    (VarType::CntUnbalPowVc13, 0.05),
+    (VarType::SelectLikely, 0.20),
+];
 
 pub fn chk_02_2(
     aids: &Vec<&String>,
@@ -1364,36 +1439,15 @@ pub fn chk_02_2(
     //////////////////////////////////////////////
     // EV Weight
     let mut we_ev = PeaAssVar::from(0u64);
-    we_ev.v[VarType::NewCarRegVp01 as usize].v = 0.20;
-    we_ev.v[VarType::GppVp02 as usize].v = 0.20;
-    we_ev.v[VarType::NoMeterTransVt01 as usize].v = 0.05;
-    we_ev.v[VarType::SmallSellTrVt02 as usize].v = 0.30;
-    we_ev.v[VarType::ChgStnCapTrVt03 as usize].v = 0.15;
-    we_ev.v[VarType::ChgStnSellTrVt04 as usize].v = 0.15;
-    we_ev.v[VarType::PwCapTriVt05 as usize].v = 0.00;
-    we_ev.v[VarType::ZoneTrVt06 as usize].v = 0.20;
-    we_ev.v[VarType::PopTrVt07 as usize].v = 0.10;
-    we_ev.v[VarType::EvCarLikely as usize].v = 0.00;
-
+    for (vt, vv) in WE_EV {
+        we_ev.v[vt.tousz()].v = vv;
+    }
     //////////////////////////////////////////////
     // Solar Weight
     let mut we_so = PeaAssVar::from(0u64);
-    we_so.v[VarType::GppVp02 as usize].v = 0.20;
-    /*
-    we_so.v[VarType::MaxPosPowSubVs01 as usize].v = 0.02;
-    we_so.v[VarType::MaxNegPowSubVs02 as usize].v = 0.02;
-    we_so.v[VarType::VsppMvVs03 as usize].v = 0.02;
-    we_so.v[VarType::SppHvVs04 as usize].v = 0.02;
-    we_so.v[VarType::BigLotMvVs05 as usize].v = 0.02;
-    we_so.v[VarType::MaxNegPowFeederVf02 as usize].v = 0.05;
-    we_so.v[VarType::MaxPosDiffFeederVf03 as usize].v = 0.05;
-    //we_so.v[VarType::PwCapTriVt05 as usize].v = 0.20;
-    */
-    we_so.v[VarType::NoMeterTransVt01 as usize].v = 0.05;
-    we_so.v[VarType::SmallSellTrVt02 as usize].v = 0.30;
-    we_so.v[VarType::ZoneTrVt06 as usize].v = 0.20;
-    we_so.v[VarType::PopTrVt07 as usize].v = 0.10;
-
+    for (vt, vv) in WE_RE {
+        we_so.v[vt.tousz()].v = vv;
+    }
     for id in aids {
         let aid = id.to_string();
         let Some(ar) = pea.aream.get(&aid) else {
@@ -1433,8 +1487,8 @@ pub fn chk_02_2(
                     bincode::encode_to_vec(&v_tras_nor, bincode::config::standard()).unwrap();
                 std::fs::write(format!("{dnm}/{sid}-nor.bin"), bin).unwrap();
                 //let a = write_trn_ass_01(&v_tras_nor, &format!("{dnm}/{sid}-nor.txt"))?;
-                write_trn_ass_01(&v_tras_nor, &format!("{dnm}/{sid}-nor0.txt"))?;
-                write_ass_csv_01(&v_tras_nor, &format!("{dnm}/{sid}-nor0.csv"))?;
+                //write_trn_ass_01(&v_tras_nor, &format!("{dnm}/{sid}-nor.txt"))?;
+                //write_ass_csv_01(&v_tras_nor, &format!("{dnm}/{sid}-nor.csv"))?;
                 //println!("=====================================  {}", a == b);
 
                 ////////////////////////////////////////////////
@@ -1452,8 +1506,8 @@ pub fn chk_02_2(
                     bincode::encode_to_vec(&v_tras_ev, bincode::config::standard()).unwrap();
                 std::fs::write(format!("{dnm}/{sid}-ev.bin"), bin).unwrap();
                 //let a = write_trn_ass_01(&v_tras_ev, &format!("{dnm}/{sid}-ev.txt"))?;
-                write_trn_ass_01(&v_tras_ev, &format!("{dnm}/{sid}-ev0.txt"))?;
-                write_ass_csv_01(&v_tras_ev, &format!("{dnm}/{sid}-ev0.csv"))?;
+                //write_trn_ass_01(&v_tras_ev, &format!("{dnm}/{sid}-ev.txt"))?;
+                //write_ass_csv_01(&v_tras_ev, &format!("{dnm}/{sid}-ev.csv"))?;
                 //println!("=====================================  {}", a == b);
 
                 ////////////////////////////////////////////////
@@ -1467,9 +1521,10 @@ pub fn chk_02_2(
                 }
                 //// save ev bin
                 let bin: Vec<u8> =
-                    bincode::encode_to_vec(&v_tras_ev, bincode::config::standard()).unwrap();
+                    bincode::encode_to_vec(&v_tras_so, bincode::config::standard()).unwrap();
                 std::fs::write(format!("{dnm}/{sid}-so.bin"), bin).unwrap();
-                write_trn_ass_01(&v_tras_ev, &format!("{dnm}/{sid}-so0.txt"))?;
+                //write_trn_ass_01(&v_tras_so, &format!("{dnm}/{sid}-so.txt"))?;
+                //write_ass_csv_01(&v_tras_so, &format!("{dnm}/{sid}-so.csv"))?;
 
                 ///////////////////////////////////////////////
                 // summary of all data
@@ -1512,8 +1567,8 @@ pub fn chk_02_2(
                 let bin: Vec<u8> =
                     bincode::encode_to_vec(&v_tras_raw, bincode::config::standard()).unwrap();
                 std::fs::write(format!("{dnm}/{sid}-rw2.bin"), bin).unwrap();
-                write_trn_ass_01(&v_tras_raw, &format!("{dnm}/{sid}-rw20.txt"))?;
-                write_ass_csv_01(&v_tras_raw, &format!("{dnm}/{sid}-rw20.csv"))?;
+                //write_trn_ass_01(&v_tras_raw, &format!("{dnm}/{sid}-rw2.txt"))?;
+                //write_ass_csv_01(&v_tras_raw, &format!("{dnm}/{sid}-rw2.csv"))?;
             } // end sub loop
         } // end provi loop
     } // end area
@@ -1528,6 +1583,10 @@ pub fn chk_02_3(
     tras_sm2: &PeaAssVar,
 ) -> Result<(), Box<dyn Error>> {
     let mut we_uc1 = PeaAssVar::from(0u64);
+    for (vt, vv) in WE_UC1 {
+        we_uc1.v[vt.tousz()].v = vv;
+    }
+    /*
     we_uc1.v[VarType::SmallSellTrVt02 as usize].v = 0.05;
     we_uc1.v[VarType::LargeSellTrVt10 as usize].v = 0.05;
     we_uc1.v[VarType::HmChgEvTrVc01 as usize].v = 0.30;
@@ -1543,8 +1602,13 @@ pub fn chk_02_3(
     we_uc1.v[VarType::UnbalPowVc12 as usize].v = 0.10;
     we_uc1.v[VarType::CntUnbalPowVc13 as usize].v = 0.05;
     we_uc1.v[VarType::SelectLikely as usize].v = 0.00;
+    */
 
     let mut we_uc2 = PeaAssVar::from(0u64);
+    for (vt, vv) in WE_UC2 {
+        we_uc2.v[vt.tousz()].v = vv;
+    }
+    /*
     we_uc2.v[VarType::SmallSellTrVt02 as usize].v = 0.05;
     we_uc2.v[VarType::LargeSellTrVt10 as usize].v = 0.10;
     we_uc2.v[VarType::HmChgEvTrVc01 as usize].v = 0.05;
@@ -1558,8 +1622,13 @@ pub fn chk_02_3(
     we_uc2.v[VarType::UnbalPowVc12 as usize].v = 0.05;
     we_uc2.v[VarType::CntUnbalPowVc13 as usize].v = 0.05;
     we_uc2.v[VarType::SelectLikely as usize].v = 0.10;
+    */
 
     let mut we_uc3 = PeaAssVar::from(0u64);
+    for (vt, vv) in WE_UC3 {
+        we_uc3.v[vt.tousz()].v = vv;
+    }
+    /*
     we_uc3.v[VarType::SmallSellTrVt02 as usize].v = 0.10;
     we_uc3.v[VarType::LargeSellTrVt10 as usize].v = 0.05;
     we_uc3.v[VarType::HmChgEvTrVc01 as usize].v = 0.15;
@@ -1573,6 +1642,7 @@ pub fn chk_02_3(
     we_uc3.v[VarType::UnbalPowVc12 as usize].v = 0.10;
     we_uc3.v[VarType::CntUnbalPowVc13 as usize].v = 0.05;
     we_uc3.v[VarType::SelectLikely as usize].v = 0.20;
+    */
 
     for id in aids {
         let aid = id.to_string();
@@ -1624,8 +1694,8 @@ pub fn chk_02_3(
                 let bin: Vec<u8> =
                     bincode::encode_to_vec(&v_tras_nor, bincode::config::standard()).unwrap();
                 std::fs::write(format!("{dnm}/{sid}-no2.bin"), bin).unwrap();
-                write_trn_ass_01(&v_tras_nor, &format!("{dnm}/{sid}-no20.txt"))?;
-                write_ass_csv_01(&v_tras_nor, &format!("{dnm}/{sid}-no20.csv"))?;
+                //write_trn_ass_01(&v_tras_nor, &format!("{dnm}/{sid}-no2.txt"))?;
+                //write_ass_csv_01(&v_tras_nor, &format!("{dnm}/{sid}-no2.csv"))?;
 
                 //// UC1
                 let mut v_uc1 = v_tras_nor.clone();
@@ -1638,8 +1708,8 @@ pub fn chk_02_3(
                 let bin: Vec<u8> =
                     bincode::encode_to_vec(&v_uc1, bincode::config::standard()).unwrap();
                 std::fs::write(format!("{dnm}/{sid}-uc1.bin"), bin).unwrap();
-                write_trn_ass_01(&v_uc1, &format!("{dnm}/{sid}-uc10.txt"))?;
-                write_ass_csv_01(&v_uc1, &format!("{dnm}/{sid}-uc10.csv"))?;
+                //write_trn_ass_01(&v_uc1, &format!("{dnm}/{sid}-uc1.txt"))?;
+                //write_ass_csv_01(&v_uc1, &format!("{dnm}/{sid}-uc1.csv"))?;
 
                 //// UC2
                 let mut v_uc2 = v_tras_nor.clone();
@@ -1652,8 +1722,8 @@ pub fn chk_02_3(
                 let bin: Vec<u8> =
                     bincode::encode_to_vec(&v_uc2, bincode::config::standard()).unwrap();
                 std::fs::write(format!("{dnm}/{sid}-uc2.bin"), bin).unwrap();
-                write_trn_ass_01(&v_uc2, &format!("{dnm}/{sid}-uc20.txt"))?;
-                write_ass_csv_01(&v_uc2, &format!("{dnm}/{sid}-uc20.csv"))?;
+                //write_trn_ass_01(&v_uc2, &format!("{dnm}/{sid}-uc2.txt"))?;
+                //write_ass_csv_01(&v_uc2, &format!("{dnm}/{sid}-uc2.csv"))?;
 
                 //// UC3
                 let mut v_uc3 = v_tras_nor.clone();
@@ -1666,14 +1736,14 @@ pub fn chk_02_3(
                 let bin: Vec<u8> =
                     bincode::encode_to_vec(&v_uc3, bincode::config::standard()).unwrap();
                 std::fs::write(format!("{dnm}/{sid}-uc3.bin"), bin).unwrap();
-                write_trn_ass_01(&v_uc3, &format!("{dnm}/{sid}-uc30.txt"))?;
-                write_ass_csv_01(&v_uc3, &format!("{dnm}/{sid}-uc30.csv"))?;
+                //write_trn_ass_01(&v_uc3, &format!("{dnm}/{sid}-uc3.txt"))?;
+                //write_ass_csv_01(&v_uc3, &format!("{dnm}/{sid}-uc3.csv"))?;
 
                 let bin: Vec<u8> =
                     bincode::encode_to_vec(&v_tras_raw, bincode::config::standard()).unwrap();
                 std::fs::write(format!("{dnm}/{sid}-rw3.bin"), bin).unwrap();
-                write_trn_ass_01(&v_tras_raw, &format!("{dnm}/{sid}-rw30.txt"))?;
-                write_ass_csv_01(&v_tras_raw, &format!("{dnm}/{sid}-rw30.csv"))?;
+                //write_trn_ass_01(&v_tras_raw, &format!("{dnm}/{sid}-rw3.txt"))?;
+                //write_ass_csv_01(&v_tras_raw, &format!("{dnm}/{sid}-rw3.csv"))?;
             }
         }
     }
@@ -1859,8 +1929,8 @@ fn write_text_01(
 /// ประมวลผลรวมเพื่อเกณฑ์การคัดเลือก
 /// summery transformaters to substation
 pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
-    let dnm = "/mnt/e/CHMBACK/pea-data/c01_pea";
-    let buf = std::fs::read(format!("{dnm}/000_pea.bin")).unwrap();
+    //let dnm = "/mnt/e/CHMBACK/pea-data/c01_pea";
+    let buf = std::fs::read(format!("{DNM}/000_pea.bin")).unwrap();
     let (pea, _): (Pea, usize) =
         bincode::decode_from_slice(&buf[..], bincode::config::standard()).unwrap();
     let mut aids: Vec<_> = pea.aream.keys().collect();
@@ -1891,7 +1961,7 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
                 let Some(_sb) = prov.subm.get(sid) else {
                     continue;
                 };
-                let Ok(buf) = std::fs::read(format!("{dnm}/{sid}-rw3.bin")) else {
+                let Ok(buf) = std::fs::read(format!("{DNM}/{sid}-rw3.bin")) else {
                     continue;
                 };
                 let (v_tras_raw, _): (Vec<PeaAssVar>, usize) =
@@ -1972,23 +2042,23 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
 
     // save ev bin
     let bin: Vec<u8> = bincode::encode_to_vec(&v_sbas, bincode::config::standard()).unwrap();
-    std::fs::write(format!("{dnm}/000-sbrw.bin"), bin).unwrap();
-    write_trn_ass_02(&v_sbas, &format!("{dnm}/000-sbrw0.txt"))?;
-    write_ass_csv_02(&v_sbas, &format!("{dnm}/000-sbrw0.csv"))?;
+    std::fs::write(format!("{DNM}/000-sbrw.bin"), bin).unwrap();
+    //write_trn_ass_02(&v_sbas, &format!("{DNM}/000-sbrw0.txt"))?;
+    //write_ass_csv_02(&v_sbas, &format!("{DNM}/000-sbrw0.csv"))?;
 
     let mut v_sbas_no = v_sbas.clone();
     for sub in v_sbas_no.iter_mut() {
         sub.nor(&sbas_mx);
     }
     let bin: Vec<u8> = bincode::encode_to_vec(&v_sbas_no, bincode::config::standard()).unwrap();
-    std::fs::write(format!("{dnm}/000-sbno.bin"), bin).unwrap();
-    write_trn_ass_02(&v_sbas_no, &format!("{dnm}/000-sbno0.txt"))?;
-    write_ass_csv_02(&v_sbas_no, &format!("{dnm}/000-sbno0.csv"))?;
+    std::fs::write(format!("{DNM}/000-sbno.bin"), bin).unwrap();
+    //write_trn_ass_02(&v_sbas_no, &format!("{DNM}/000-sbno0.txt"))?;
+    //write_ass_csv_02(&v_sbas_no, &format!("{DNM}/000-sbno0.csv"))?;
 
     let bin: Vec<u8> = bincode::encode_to_vec(&v_pvas, bincode::config::standard()).unwrap();
-    std::fs::write(format!("{dnm}/000-pvrw.bin"), bin).unwrap();
-    write_trn_ass_02(&v_pvas, &format!("{dnm}/000-pvrw.txt"))?;
-    write_ass_csv_02(&v_sbas_no, &format!("{dnm}/000-pvrw.csv"))?;
+    std::fs::write(format!("{DNM}/000-pvrw.bin"), bin).unwrap();
+    //write_trn_ass_02(&v_pvas, &format!("{DNM}/000-pvrw.txt"))?;
+    //write_ass_csv_02(&v_sbas_no, &format!("{DNM}/000-pvrw.csv"))?;
     Ok(())
 }
 
