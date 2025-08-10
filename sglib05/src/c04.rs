@@ -249,6 +249,12 @@ pub enum VarType {
     SolarEnergy,
 }
 
+impl VarType {
+    pub fn tousz(&self) -> usize {
+        self.clone() as usize
+    }
+}
+
 #[derive(Encode, Decode, Debug, Clone, Default)]
 pub struct AssVar {
     pub v: f32,
@@ -901,6 +907,10 @@ use crate::p01::p01_chk;
 use crate::p08::p08_class_val;
 use crate::p08::ProfType;
 
+pub const TRF_LOSS_RATIO: f32 = 0.03;
+pub const TRF_UNBAL_K: f32 = 1.0f32;
+pub const TRF_UNBAL_CNT_RATE: f32 = 0.8f32;
+
 pub fn chk_02_1(
     aids: &Vec<&String>,
     pea: &Pea,
@@ -1209,9 +1219,6 @@ pub fn chk_02_1(
                         let v_ph_mx = v_phs_a.max(v_phs_b.max(v_phs_c));
                         let v_ph_rt = v_ph_mx / z2o(v_ph_av);
                         let v_al_kw = v_phs_a + v_phs_b + v_phs_c;
-                        const TRF_LOSS_RATIO: f32 = 0.03;
-                        const TRF_UNBAL_K: f32 = 1.0f32;
-                        const TRF_UNBAL_CNT_RATE: f32 = 0.8f32;
                         let v_loss = v_al_kw * TRF_LOSS_RATIO;
                         let v_unba = v_loss * TRF_UNBAL_K * v_ph_rt * v_ph_rt;
                         let v_unb_sat = v_ph_mx / z2o(vt05);
@@ -1380,10 +1387,10 @@ pub fn chk_02_2(
     we_so.v[VarType::BigLotMvVs05 as usize].v = 0.02;
     we_so.v[VarType::MaxNegPowFeederVf02 as usize].v = 0.05;
     we_so.v[VarType::MaxPosDiffFeederVf03 as usize].v = 0.05;
+    //we_so.v[VarType::PwCapTriVt05 as usize].v = 0.20;
     */
     we_so.v[VarType::NoMeterTransVt01 as usize].v = 0.05;
     we_so.v[VarType::SmallSellTrVt02 as usize].v = 0.30;
-    //we_so.v[VarType::PwCapTriVt05 as usize].v = 0.20;
     we_so.v[VarType::ZoneTrVt06 as usize].v = 0.20;
     we_so.v[VarType::PopTrVt07 as usize].v = 0.10;
 
