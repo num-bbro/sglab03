@@ -247,6 +247,34 @@ pub enum VarType {
     SubSolarPeekMw,
     SubSolarEnergy,
     SolarEnergy,
+
+    Ben1,
+    Ben2,
+    Ben3,
+    Ben4,
+    Ben5,
+    Ben6,
+    Ben7,
+    Ben8,
+    Ben9,
+    Ben10,
+    Ben11,
+    Ben12,
+    Ben13,
+    Ben14,
+    Ben15,
+    Ben16,
+    Ben17,
+    Ben18,
+    Ben19,
+    Ben20,
+    Ben21,
+    Ben22,
+    Ben23,
+    Ben24,
+    Ben25,
+    Ben26,
+    Ben27,
 }
 
 impl VarType {
@@ -293,6 +321,7 @@ pub struct PeaAssVar {
     pub set: u32,
     pub v: Vec<AssVar>,
     pub res: f32,
+    pub vy: Vec<Vec<f32>>,
 }
 
 pub fn z2o(v: f32) -> f32 {
@@ -304,6 +333,31 @@ pub fn z2o(v: f32) -> f32 {
 }
 
 impl PeaAssVar {
+    pub fn from(n1d: u64) -> Self {
+        let mut v = Vec::<AssVar>::new();
+        let mut vy = Vec::<Vec<f32>>::new();
+        for vt in VarType::iter() {
+            let st = match vt {
+                VarType::MaxPosPowSubVs01 => SumType::Max,
+                VarType::MaxNegPowSubVs02 => SumType::Max,
+                VarType::MaxPosPowFeederVf01 => SumType::Max,
+                VarType::MaxNegPowFeederVf02 => SumType::Max,
+                VarType::MaxPosDiffFeederVf03 => SumType::Max,
+                VarType::MaxNegDiffFeederVf04 => SumType::Max,
+                VarType::UnbalPowRate => SumType::Max,
+                _ => SumType::Sum,
+            };
+            v.push(AssVar::new(vt, st));
+            let vv = Vec::<f32>::new();
+            vy.push(vv);
+        }
+        PeaAssVar {
+            n1d,
+            v,
+            vy,
+            ..Default::default()
+        }
+    }
     pub fn div(&mut self, o: f32) {
         if o == 0f32 {
             return;
@@ -312,17 +366,14 @@ impl PeaAssVar {
             v.v /= o;
         }
     }
-
     pub fn nor(&mut self, o: &PeaAssVar) {
         for (v, o) in self.v.iter_mut().zip(o.v.iter()) {
             v.v /= z2o(o.v);
         }
     }
-
     pub fn copy(&mut self, o: &PeaAssVar, t: VarType) {
         self.v[t.clone() as usize].v = o.v[t.clone() as usize].v;
     }
-
     pub fn add(&mut self, o: &PeaAssVar) {
         for (v, o) in self.v.iter_mut().zip(o.v.iter()) {
             match v.s {
@@ -334,6 +385,7 @@ impl PeaAssVar {
     }
     pub fn max(&mut self, o: &PeaAssVar) {
         if self.set == 0 {
+            self.set += 1;
             for (v, o) in self.v.iter_mut().zip(o.v.iter()) {
                 v.v = o.v;
             }
@@ -347,6 +399,7 @@ impl PeaAssVar {
 
     pub fn min(&mut self, o: &PeaAssVar) {
         if self.set == 0 {
+            self.set += 1;
             for (v, o) in self.v.iter_mut().zip(o.v.iter()) {
                 v.v = o.v;
             }
@@ -755,6 +808,7 @@ pub fn c01_chk_01_02(pea: &Pea, dnm: &str, g0: &ProcEngine) -> Result<(), Box<dy
     Ok(())
 }
 
+/*
 impl PeaAssVar {
     pub fn from(n1d: u64) -> Self {
         let mut v = Vec::<AssVar>::new();
@@ -778,6 +832,7 @@ impl PeaAssVar {
         }
     }
 }
+*/
 
 /// read 000_pea.bin
 /// read SSS.bin
@@ -1500,6 +1555,7 @@ pub fn chk_02_2(
                     tras.sum();
                     //tras0.vc01 = tras.sum;
                     tras0.v[VarType::HmChgEvTrVc01 as usize].v = tras.res;
+                    //tras0.v[VarType::HmChgEvTrVc01 as usize].v = 111.111;
                 }
                 //// save ev bin
                 let bin: Vec<u8> =
@@ -1586,64 +1642,14 @@ pub fn chk_02_3(
     for (vt, vv) in WE_UC1 {
         we_uc1.v[vt.tousz()].v = vv;
     }
-    /*
-    we_uc1.v[VarType::SmallSellTrVt02 as usize].v = 0.05;
-    we_uc1.v[VarType::LargeSellTrVt10 as usize].v = 0.05;
-    we_uc1.v[VarType::HmChgEvTrVc01 as usize].v = 0.30;
-    we_uc1.v[VarType::CntLvPowSatTrVc03 as usize].v = 0.15;
-    we_uc1.v[VarType::ChgStnCapVc04 as usize].v = 0.05;
-    we_uc1.v[VarType::ChgStnSellVc05 as usize].v = 0.05;
-    we_uc1.v[VarType::MvPowSatTrVc06 as usize].v = 0.05;
-    we_uc1.v[VarType::PowSolarVc07 as usize].v = 0.15;
-    we_uc1.v[VarType::ZoneTrVt06 as usize].v = 0.05;
-    we_uc1.v[VarType::PopTrVt07 as usize].v = 0.05;
-    we_uc1.v[VarType::MvVsppVc08 as usize].v = 0.05;
-    we_uc1.v[VarType::HvSppVc09 as usize].v = 0.05;
-    we_uc1.v[VarType::UnbalPowVc12 as usize].v = 0.10;
-    we_uc1.v[VarType::CntUnbalPowVc13 as usize].v = 0.05;
-    we_uc1.v[VarType::SelectLikely as usize].v = 0.00;
-    */
-
     let mut we_uc2 = PeaAssVar::from(0u64);
     for (vt, vv) in WE_UC2 {
         we_uc2.v[vt.tousz()].v = vv;
     }
-    /*
-    we_uc2.v[VarType::SmallSellTrVt02 as usize].v = 0.05;
-    we_uc2.v[VarType::LargeSellTrVt10 as usize].v = 0.10;
-    we_uc2.v[VarType::HmChgEvTrVc01 as usize].v = 0.05;
-    we_uc2.v[VarType::CntLvPowSatTrVc03 as usize].v = 0.05;
-    we_uc2.v[VarType::ChgStnCapVc04 as usize].v = 0.10;
-    we_uc2.v[VarType::ChgStnSellVc05 as usize].v = 0.10;
-    we_uc2.v[VarType::MvPowSatTrVc06 as usize].v = 0.15;
-    we_uc2.v[VarType::PowSolarVc07 as usize].v = 0.05;
-    we_uc2.v[VarType::MvVsppVc08 as usize].v = 0.15;
-    we_uc2.v[VarType::HvSppVc09 as usize].v = 0.10;
-    we_uc2.v[VarType::UnbalPowVc12 as usize].v = 0.05;
-    we_uc2.v[VarType::CntUnbalPowVc13 as usize].v = 0.05;
-    we_uc2.v[VarType::SelectLikely as usize].v = 0.10;
-    */
-
     let mut we_uc3 = PeaAssVar::from(0u64);
     for (vt, vv) in WE_UC3 {
         we_uc3.v[vt.tousz()].v = vv;
     }
-    /*
-    we_uc3.v[VarType::SmallSellTrVt02 as usize].v = 0.10;
-    we_uc3.v[VarType::LargeSellTrVt10 as usize].v = 0.05;
-    we_uc3.v[VarType::HmChgEvTrVc01 as usize].v = 0.15;
-    we_uc3.v[VarType::CntLvPowSatTrVc03 as usize].v = 0.15;
-    we_uc3.v[VarType::ChgStnCapVc04 as usize].v = 0.05;
-    we_uc3.v[VarType::ChgStnSellVc05 as usize].v = 0.05;
-    we_uc3.v[VarType::MvPowSatTrVc06 as usize].v = 0.05;
-    we_uc3.v[VarType::PowSolarVc07 as usize].v = 0.15;
-    we_uc3.v[VarType::MvVsppVc08 as usize].v = 0.05;
-    we_uc3.v[VarType::HvSppVc09 as usize].v = 0.05;
-    we_uc3.v[VarType::UnbalPowVc12 as usize].v = 0.10;
-    we_uc3.v[VarType::CntUnbalPowVc13 as usize].v = 0.05;
-    we_uc3.v[VarType::SelectLikely as usize].v = 0.20;
-    */
-
     for id in aids {
         let aid = id.to_string();
         let Some(ar) = pea.aream.get(&aid) else {
@@ -1750,6 +1756,7 @@ pub fn chk_02_3(
     Ok(())
 }
 
+#[allow(dead_code)]
 fn write_trn_ass_01(tr_as: &Vec<PeaAssVar>, fnm: &str) -> Result<String, Box<dyn Error>> {
     let flds = [
         VarType::NewCarRegVp01,
@@ -1810,6 +1817,7 @@ fn write_trn_ass_01(tr_as: &Vec<PeaAssVar>, fnm: &str) -> Result<String, Box<dyn
     write_text_01(tr_as, &flds, fnm)
 }
 
+#[allow(dead_code)]
 fn write_trn_ass_02(tr_as: &Vec<PeaAssVar>, fnm: &str) -> Result<String, Box<dyn Error>> {
     let flds = [
         VarType::NewCarRegVp01,
@@ -1899,6 +1907,7 @@ fn write_text_02(
     Ok(h)
 }
 
+#[allow(dead_code)]
 fn write_text_01(
     tr_as: &Vec<PeaAssVar>,
     flds: &[VarType],
@@ -1926,6 +1935,42 @@ fn write_text_01(
     Ok(h)
 }
 
+use sglib03::prc4::SubBenInfo;
+use sglib04::prc41::SubCalc;
+
+//use sglib04::calc::SubstReport;
+use sglib04::prc41::ld_sb_tr0;
+//use sglib04::web1::ben_asset_value;
+use sglib04::web1::ben_bill_accu;
+use sglib04::web1::ben_boxline_save;
+use sglib04::web1::ben_emeter;
+//use sglib04::web1::ben_model_entry;
+use num::pow::Pow;
+use sglib04::web1::ben_amt_proj;
+use sglib04::web1::ben_cash_flow;
+use sglib04::web1::ben_dr_save;
+use sglib04::web1::ben_mt_disconn;
+use sglib04::web1::ben_mt_read;
+use sglib04::web1::ben_outage_labor;
+use sglib04::web1::ben_reduce_complain;
+use sglib04::web1::ben_sell_meter;
+use sglib04::web1::ben_tou_read;
+use sglib04::web1::ben_tou_sell;
+use sglib04::web1::ben_tou_update;
+use sglib04::web1::ben_work_save;
+use sglib04::web1::BenProj;
+//use sglib04::web1::CALL_CENTER_COST_UP;
+use sglib04::web1::M1P_COST;
+use sglib04::web1::M3P_COST;
+use sglib04::web1::OP_YEAR_END;
+use sglib04::web1::OP_YEAR_START;
+use sglib04::web1::TRX_COST;
+
+pub const CALL_CENTER_COST_UP: f32 = 0.04f32;
+pub const ASSET_WORTH_RATIO: f32 = 0.1f32;
+pub const MODEL_ENTRY_RATIO: f32 = 0.05f32;
+pub const MODEL_ENTRY_COST: f32 = 1000f32;
+
 /// ประมวลผลรวมเพื่อเกณฑ์การคัดเลือก
 /// summery transformaters to substation
 pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
@@ -1936,6 +1981,12 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
     let mut aids: Vec<_> = pea.aream.keys().collect();
     aids.sort();
     let subhs = p01_chk();
+    let sbtr = ld_sb_tr0();
+    println!("sbtr: {}", sbtr.len());
+    let mut emp = Vec::<(u32, f32)>::new();
+    for y in OP_YEAR_START..=OP_YEAR_END {
+        emp.push((y, 0f32));
+    }
     //
     //let mut pvcn = 0;
     let mut v_pvas = Vec::<PeaAssVar>::new();
@@ -1958,7 +2009,7 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
             let mut sids: Vec<_> = prov.subm.keys().collect();
             sids.sort();
             for sid in sids {
-                let Some(_sb) = prov.subm.get(sid) else {
+                let Some(sb) = prov.subm.get(sid) else {
                     continue;
                 };
                 let Ok(buf) = std::fs::read(format!("{DNM}/{sid}-rw3.bin")) else {
@@ -2004,6 +2055,84 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
                 pvas.add(&sbas);
                 pvas.copy(tras, VarType::NewCarRegVp01);
                 pvas.copy(tras, VarType::GppVp02);
+                //if let (Some(sbtr), Some(gs)) = (sbtr.get(&sb), sb_inf.get(&sb)) {
+                if let Some(sbtr) = sbtr.get(&sbas.sbid) {
+                    use sglib03::prc4::ld_ben_bess1;
+                    let ben = ld_ben_bess1(&sbas.sbid);
+                    let ben8 = ben_bill_accu(sbtr, &ben);
+                    let ben9 = ben_cash_flow(sbtr, &ben);
+                    let ben10 = ben_dr_save(sbtr, &ben);
+                    let mut ben11 = BenProj { proj: emp.clone() };
+                    let mut ben12 = BenProj { proj: emp.clone() };
+                    let mut ben13 = BenProj { proj: emp.clone() };
+                    let mut ben14 = BenProj { proj: emp.clone() };
+                    if ben.mx_pw > 0f32
+                        && ben.grw < 7f32
+                        && ben.be_start <= 3
+                        && ben.trlm > 40f32
+                        && (sb.conf == "AIS" || sb.conf == "GIS")
+                    {
+                        let (be_sub_save, be_re_diff, be_svg_save, be_en_added) =
+                            ben_amt_proj(&ben);
+                        ben11 = be_sub_save;
+                        ben12 = be_svg_save;
+                        ben13 = be_en_added;
+                        ben14 = be_re_diff;
+                    }
+                    let ben15 = ben_boxline_save(sbtr, &ben);
+                    let ben16 = ben_work_save(sbtr, &ben);
+                    let ben17 = ben_sell_meter(sbtr, &ben);
+                    let ben18 = ben_emeter(sbtr, &ben);
+                    let ben19 = ben_mt_read(sbtr, &ben);
+                    let ben20 = ben_mt_disconn(sbtr, &ben);
+                    let ben21 = ben_tou_sell(sbtr, &ben);
+                    let ben22 = ben_tou_read(sbtr, &ben);
+                    let ben23 = ben_tou_update(sbtr, &ben);
+                    let ben24 = ben_outage_labor(sbtr, &ben);
+                    let ben25 = ben_reduce_complain(sbtr, &ben);
+                    let ben26 = ben_asset_value(sbtr, &ben);
+                    let ben27 = ben_model_entry(sbtr, &ben);
+                    let mut ben8v = ben8.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben9v = ben9.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben10v = ben10.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben11v = ben11.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben12v = ben12.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben13v = ben13.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben14v = ben14.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben15v = ben15.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben16v = ben16.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben17v = ben17.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben18v = ben18.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben19v = ben19.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben20v = ben20.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben21v = ben21.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben22v = ben22.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben23v = ben23.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben24v = ben24.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben25v = ben25.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben26v = ben26.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben27v = ben27.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    sbas.vy[VarType::Ben8.tousz()].append(&mut ben8v);
+                    sbas.vy[VarType::Ben9.tousz()].append(&mut ben9v);
+                    sbas.vy[VarType::Ben10.tousz()].append(&mut ben10v);
+                    sbas.vy[VarType::Ben11.tousz()].append(&mut ben11v);
+                    sbas.vy[VarType::Ben12.tousz()].append(&mut ben12v);
+                    sbas.vy[VarType::Ben13.tousz()].append(&mut ben13v);
+                    sbas.vy[VarType::Ben14.tousz()].append(&mut ben14v);
+                    sbas.vy[VarType::Ben15.tousz()].append(&mut ben15v);
+                    sbas.vy[VarType::Ben16.tousz()].append(&mut ben16v);
+                    sbas.vy[VarType::Ben17.tousz()].append(&mut ben17v);
+                    sbas.vy[VarType::Ben18.tousz()].append(&mut ben18v);
+                    sbas.vy[VarType::Ben19.tousz()].append(&mut ben19v);
+                    sbas.vy[VarType::Ben20.tousz()].append(&mut ben20v);
+                    sbas.vy[VarType::Ben21.tousz()].append(&mut ben21v);
+                    sbas.vy[VarType::Ben22.tousz()].append(&mut ben22v);
+                    sbas.vy[VarType::Ben23.tousz()].append(&mut ben23v);
+                    sbas.vy[VarType::Ben24.tousz()].append(&mut ben24v);
+                    sbas.vy[VarType::Ben25.tousz()].append(&mut ben25v);
+                    sbas.vy[VarType::Ben26.tousz()].append(&mut ben26v);
+                    sbas.vy[VarType::Ben27.tousz()].append(&mut ben27v);
+                }
                 v_sbas.push(sbas);
                 //println!("   {sid} - {}", v_tras.len());
             } // end sub loop
@@ -2111,6 +2240,7 @@ pub fn c01_chk_04() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+#[allow(dead_code)]
 fn write_ass_csv_01(tr_as: &Vec<PeaAssVar>, fnm: &str) -> Result<String, Box<dyn Error>> {
     let mut x = String::new();
     use std::fmt::Write;
@@ -2194,6 +2324,7 @@ fn write_ass_csv_01(tr_as: &Vec<PeaAssVar>, fnm: &str) -> Result<String, Box<dyn
     Ok(h)
 }
 
+#[allow(dead_code)]
 fn write_ass_csv_02(tr_as: &Vec<PeaAssVar>, fnm: &str) -> Result<String, Box<dyn Error>> {
     let mut x = String::new();
     use std::fmt::Write;
@@ -2273,6 +2404,28 @@ fn write_ass_csv_02(tr_as: &Vec<PeaAssVar>, fnm: &str) -> Result<String, Box<dyn
     Ok(h)
 }
 
+pub fn c01_chk_05() -> Result<(), Box<dyn Error>> {
+    let buf = std::fs::read(format!("{DNM}/000_pea.bin")).unwrap();
+    let (pea, _): (Pea, usize) =
+        bincode::decode_from_slice(&buf[..], bincode::config::standard()).unwrap();
+    println!("pea ar:{}", pea.aream.len());
+    let mut aids: Vec<_> = pea.aream.keys().collect();
+    aids.sort();
+    //let mut tras_mx1 = PeaAssVar::default();
+    //let mut tras_mx2 = PeaAssVar::default();
+    let mut tras_mx1 = PeaAssVar::from(0u64);
+    let mut tras_mx2 = PeaAssVar::from(0u64);
+    let mut tras_sm2 = PeaAssVar::from(0u64);
+    chk_02_1(&aids, &pea, DNM, &mut tras_mx1)?;
+    chk_02_2(&aids, &pea, DNM, &tras_mx1, &mut tras_mx2, &mut tras_sm2)?;
+    //chk_02_3(&aids, &pea, DNM, &tras_mx2, &tras_sm2)?;
+    let maxs = vec![tras_mx1, tras_mx2, tras_sm2];
+    let bin: Vec<u8> = bincode::encode_to_vec(&maxs, bincode::config::standard()).unwrap();
+    std::fs::write(format!("{DNM}/pea-mx.bin"), bin).unwrap();
+
+    Ok(())
+}
+
 pub static EV_LIKELY: phf::Map<&'static str, f32> = phf_map! {
 "ระยอง" => 1f32,
 "ชลบุรี" => 1f32,
@@ -2317,62 +2470,47 @@ pub static SELE_LIKELY: phf::Map<&'static str, f32> = phf_map! {
 "ภูเก็ต" => 1f32,
 };
 
-/*
-"สมุทรปราการ" => 320294,
-"กระบี่" => 174058,
-"สมุทรสงคราม" => 167164,
-"ลพบุรี" => 152831,
-"สระแก้ว" => 82526,
-"บุรีรัมย์" => 91636,
-"ระนอง" => 99331,
-"จันทบุรี" => 253522,
-"ลำพูน" => 236619,
-"ชุมพร" => 230319,
-"พังงา" => 229213,
-"ประจวบคีรีขันธ์" => 221151,
-"นนทบุรี" => 214515,
-"ตราด" => 164835,
-"ชัยนาท" => 157159,
-"กำแพงเพชร" => 155404,
-"กาญจนบุรี" => 153662,
-"สิงห์บุรี" => 151750,
-"อ่างทอง" => 135248,
-"นครศรีธรรมราช" => 127405,
-"นครนายก" => 126435,
-"สุพรรณบุรี" => 124482,
-"อุทัยธานี" => 123946,
-"ตาก" => 121537,
-"อุตรดิตถ์" => 120720,
-"เลย" => 117624,
-"ตรัง" => 111746,
-"สตูล" => 110312,
-"พะเยา" => 109275,
-"ยะลา" => 108108,
-"ลำปาง" => 107732,
-"หนองคาย" => 107589,
-"พิจิตร" => 105054,
-"เชียงราย" => 102988,
-"เพชรบูรณ์" => 100936,
-"อุดรธานี" => 100005,
-"นครพนม" => 96731,
-"สุโขทัย" => 93208,
-"แพร่" => 91324,
-"ศรีสะเกษ" => 91060,
-"มหาสารคาม" => 90996,
-"สุรินทร์" => 89852,
-"น่าน" => 89515,
-"พัทลุง" => 87098,
-"ชัยภูมิ" => 85951,
-"อำนาจเจริญ" => 85707,
-"กาฬสินธุ์" => 84785,
-"บึงกาฬ" => 84021,
-"ปัตตานี" => 83369,
-"อุบลราชธานี" => 82895,
-"ร้อยเอ็ด" => 82491,
-"สกลนคร" => 78895,
-"ยโสธร" => 77376,
-"มุกดาหาร" => 72251,
-"แม่ฮ่องสอน" => 69828,
-"หนองบัวลำภู" => 69008,
-"นราธิวาส" => 64005,
-*/
+pub fn ben_asset_value(sbtr: &SubCalc, ben: &SubBenInfo) -> BenProj {
+    //print!("====  ASSET");
+    let m1i = sbtr.mt_1_ph as f64 * M1P_COST as f64;
+    let m3i = sbtr.mt_3_ph as f64 * M3P_COST as f64;
+    let txp = sbtr.p_tx_cn_m.iter().map(|(_, v)| v).sum::<u32>();
+    let txc = sbtr.c_tx_cn_m.iter().map(|(_, v)| v).sum::<u32>();
+    let txi = (txp + txc) as f64 * TRX_COST as f64;
+    let mut esi = 0f64;
+    if ben.mx_pw > 0f32 && ben.grw < 7f32 && ben.be_start <= 3 && ben.trlm > 40f32 {
+        esi = ben.bat_cost as f64 * 1_000_000_f64;
+    }
+    let ass = (m1i + m3i + txi + esi) * ASSET_WORTH_RATIO as f64;
+    //print!("  m1:{m1i} m3:{m3i} t:{txi} b:{esi} = as:{ass}\n");
+    let mut proj = Vec::<(u32, f32)>::new();
+    for y in 0..11 {
+        proj.push((y + 2028, 0f32));
+    }
+    proj.push((11 + 2028, ass as f32));
+    //println!();
+    BenProj { proj }
+}
+
+pub fn ben_model_entry(sbtr: &SubCalc, ben: &SubBenInfo) -> BenProj {
+    //print!("====  MODEL ENTRY");
+    let txp = sbtr.p_tx_cn_m.iter().map(|(_, v)| v).sum::<u32>();
+    let txc = sbtr.c_tx_cn_m.iter().map(|(_, v)| v).sum::<u32>();
+    let mut cnt = (txp + txc + sbtr.mt_1_ph as u32 + sbtr.mt_3_ph as u32) as f64;
+    if ben.mx_pw > 0f32 && ben.grw < 7f32 && ben.be_start <= 3 && ben.trlm > 40f32 {
+        cnt += 1.0;
+    }
+    let ent_cn = cnt * MODEL_ENTRY_RATIO as f64;
+    let ent_ex = ent_cn * MODEL_ENTRY_COST as f64;
+
+    //print!("  cn:{ent_cn} ex:{ent_ex} \n");
+    let mut proj = Vec::<(u32, f32)>::new();
+    for y in 0..12 {
+        let be = ent_ex;
+        let be = be * Pow::pow(1f64 + CALL_CENTER_COST_UP as f64, y as f64);
+        //print!(" {} - {be}", y + 2028);
+        proj.push((y + 2028, be as f32));
+    }
+    //println!();
+    BenProj { proj }
+}

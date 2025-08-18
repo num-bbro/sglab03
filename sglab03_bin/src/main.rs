@@ -7,6 +7,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let a2 = env::args().nth(2).unwrap_or("?".to_string());
     let a3 = env::args().nth(3).unwrap_or("?".to_string());
     match a1.as_str() {
+        "c01_chk_05" => sglib05::c04::c01_chk_05()?,
         "p08_calc_lp2" => sglib05::p08::p08_calc_lp2(a2.as_str(), a3.as_str())?,
         "p08_calc_lp1" => sglib05::p08::p08_calc_lp1(a2.as_str())?,
         "p08_draw_01" => sglib05::p08::p08_draw_01(a2.as_str(), a3.as_str())?,
