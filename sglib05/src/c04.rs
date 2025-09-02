@@ -382,6 +382,16 @@ impl PeaAssVar {
                 SumType::Min => v.v = v.v.min(o.v),
             }
         }
+        for (vy, oy) in self.vy.iter_mut().zip(o.vy.iter()) {
+            if vy.is_empty() && oy.len() > vy.len() {
+                let mut oya = oy.clone();
+                vy.append(&mut oya);
+            } else if vy.len() == oy.len() {
+                for (vv, ov) in vy.iter_mut().zip(oy.iter()) {
+                    *vv += *ov;
+                }
+            }
+        }
     }
     pub fn max(&mut self, o: &PeaAssVar) {
         if self.set == 0 {
@@ -1432,10 +1442,10 @@ pub const WE_RE: [(VarType, f32); 5] = [
     (VarType::PopTrVt07, 0.10),
 ];
 
-pub const WE_UC1: [(VarType, f32); 15] = [
+pub const WE_UC1: [(VarType, f32); 14] = [
     //(VarType::GppVp02, 0.20),
     (VarType::SmallSellTrVt02, 0.05),
-    (VarType::LargeSellTrVt10, 0.05),
+    //(VarType::LargeSellTrVt10, 0.05),
     (VarType::HmChgEvTrVc01, 0.30),
     (VarType::CntLvPowSatTrVc03, 0.15),
     (VarType::ChgStnCapVc04, 0.05),
@@ -1451,9 +1461,9 @@ pub const WE_UC1: [(VarType, f32); 15] = [
     (VarType::SelectLikely, 0.00),
 ];
 
-pub const WE_UC2: [(VarType, f32); 13] = [
+pub const WE_UC2: [(VarType, f32); 12] = [
     (VarType::SmallSellTrVt02, 0.05),
-    (VarType::LargeSellTrVt10, 0.10),
+    //(VarType::LargeSellTrVt10, 0.10),
     (VarType::HmChgEvTrVc01, 0.05),
     (VarType::CntLvPowSatTrVc03, 0.05),
     (VarType::ChgStnCapVc04, 0.10),
@@ -1467,9 +1477,9 @@ pub const WE_UC2: [(VarType, f32); 13] = [
     (VarType::SelectLikely, 0.10),
 ];
 
-pub const WE_UC3: [(VarType, f32); 13] = [
+pub const WE_UC3: [(VarType, f32); 12] = [
     (VarType::SmallSellTrVt02, 0.10),
-    (VarType::LargeSellTrVt10, 0.05),
+    //(VarType::LargeSellTrVt10, 0.05),
     (VarType::HmChgEvTrVc01, 0.15),
     (VarType::CntLvPowSatTrVc03, 0.15),
     (VarType::ChgStnCapVc04, 0.05),
@@ -1967,7 +1977,7 @@ use sglib04::web1::OP_YEAR_START;
 use sglib04::web1::TRX_COST;
 
 pub const CALL_CENTER_COST_UP: f32 = 0.04f32;
-pub const ASSET_WORTH_RATIO: f32 = 0.1f32;
+pub const ASSET_WORTH_RATIO: f32 = 0.2f32;
 pub const MODEL_ENTRY_RATIO: f32 = 0.05f32;
 pub const MODEL_ENTRY_COST: f32 = 1000f32;
 
@@ -2052,9 +2062,6 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
 
                 sbas.v[VarType::TakeNote as usize].v = note;
                 sbas_mx.max(&sbas);
-                pvas.add(&sbas);
-                pvas.copy(tras, VarType::NewCarRegVp01);
-                pvas.copy(tras, VarType::GppVp02);
                 //if let (Some(sbtr), Some(gs)) = (sbtr.get(&sb), sb_inf.get(&sb)) {
                 if let Some(sbtr) = sbtr.get(&sbas.sbid) {
                     use sglib03::prc4::ld_ben_bess1;
@@ -2066,11 +2073,9 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
                     let mut ben12 = BenProj { proj: emp.clone() };
                     let mut ben13 = BenProj { proj: emp.clone() };
                     let mut ben14 = BenProj { proj: emp.clone() };
-                    if ben.mx_pw > 0f32
-                        && ben.grw < 7f32
-                        && ben.be_start <= 3
-                        && ben.trlm > 40f32
-                        && (sb.conf == "AIS" || sb.conf == "GIS")
+                    //print!(" {}", sb.sbtp);
+                    if ben.mx_pw > 0f32 && ben.grw < 7f32 && ben.be_start <= 3 && ben.trlm > 40f32
+                    //&& (sb.conf == "AIS" || sb.conf == "GIS")
                     {
                         let (be_sub_save, be_re_diff, be_svg_save, be_en_added) =
                             ben_amt_proj(&ben);
@@ -2133,6 +2138,11 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
                     sbas.vy[VarType::Ben26.tousz()].append(&mut ben26v);
                     sbas.vy[VarType::Ben27.tousz()].append(&mut ben27v);
                 }
+                if sbas.v[VarType::TakeNote as usize].v == 1f32 {
+                    pvas.add(&sbas);
+                }
+                pvas.copy(tras, VarType::NewCarRegVp01);
+                pvas.copy(tras, VarType::GppVp02);
                 v_sbas.push(sbas);
                 //println!("   {sid} - {}", v_tras.len());
             } // end sub loop
@@ -2172,7 +2182,7 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
     // save ev bin
     let bin: Vec<u8> = bincode::encode_to_vec(&v_sbas, bincode::config::standard()).unwrap();
     std::fs::write(format!("{DNM}/000-sbrw.bin"), bin).unwrap();
-    //write_trn_ass_02(&v_sbas, &format!("{DNM}/000-sbrw0.txt"))?;
+    write_trn_ass_02(&v_sbas, &format!("{DNM}/000-sbrw0.txt"))?;
     //write_ass_csv_02(&v_sbas, &format!("{DNM}/000-sbrw0.csv"))?;
 
     let mut v_sbas_no = v_sbas.clone();
@@ -2181,9 +2191,20 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
     }
     let bin: Vec<u8> = bincode::encode_to_vec(&v_sbas_no, bincode::config::standard()).unwrap();
     std::fs::write(format!("{DNM}/000-sbno.bin"), bin).unwrap();
-    //write_trn_ass_02(&v_sbas_no, &format!("{DNM}/000-sbno0.txt"))?;
+    write_trn_ass_02(&v_sbas_no, &format!("{DNM}/000-sbno0.txt"))?;
     //write_ass_csv_02(&v_sbas_no, &format!("{DNM}/000-sbno0.csv"))?;
 
+    let mut ben80 = 0.0;
+    for pvas in &v_pvas {
+        let ben8n = pvas.vy[VarType::Ben8.tousz()].len();
+        let mut ben8a = 0.0;
+        for b8 in &pvas.vy[VarType::Ben8.tousz()] {
+            ben8a += b8;
+        }
+        ben80 += ben8a;
+        println!("{} - {ben8n} = {ben8a}", pvas.pvid);
+    }
+    println!("{ben80}");
     let bin: Vec<u8> = bincode::encode_to_vec(&v_pvas, bincode::config::standard()).unwrap();
     std::fs::write(format!("{DNM}/000-pvrw.bin"), bin).unwrap();
     //write_trn_ass_02(&v_pvas, &format!("{DNM}/000-pvrw.txt"))?;
