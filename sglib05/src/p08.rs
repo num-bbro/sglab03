@@ -1164,3 +1164,93 @@ pub fn p08_calc_lp3(yr: &str) -> Result<(), Box<dyn Error>> {
     println!("n1w:{n1w} n2w:{n2w} n1e:{n1e} n2e:{n2e}");
     Ok(())
 }
+
+use sglab02_lib::sg::load::load_pvcamp;
+use sglab02_lib::sg::prc1::SubstInfo;
+use sglab02_lib::sg::prc3::ld_p3_sub_inf;
+
+#[derive(Debug, Encode, Decode, Clone, Default)]
+pub struct SubInfo {
+    pub sbid: String,
+    pub name: String,
+    pub enam: String,
+    pub area: String,
+    pub arid: String,
+    pub volt: String,
+    pub cate: String,
+    pub egat: String,
+    pub state: String,
+    pub conf: String,
+    pub trax: String,
+    pub mvax: String,
+    pub feed: String,
+    pub feno: usize,
+    pub feeders: Vec<String>,
+    pub trxn: usize,
+    pub mvxn: i32,
+    pub prov: String,
+}
+
+impl SubInfo {
+    pub fn copy(si: &SubstInfo) -> Self {
+        SubInfo {
+            sbid: si.sbid.clone(),
+            name: si.name.clone(),
+            enam: si.enam.clone(),
+            area: si.area.clone(),
+            arid: si.arid.clone(),
+            volt: si.volt.clone(),
+            cate: si.cate.clone(),
+            egat: si.egat.clone(),
+            state: si.state.clone(),
+            conf: si.conf.clone(),
+            trax: si.trax.clone(),
+            mvax: si.mvax.clone(),
+            feed: si.feed.clone(),
+            feno: si.feno.clone(),
+            feeders: si.feeders.clone(),
+            trxn: si.trxn.clone(),
+            mvxn: si.mvxn.clone(),
+            prov: si.prov.clone(),
+        }
+    }
+}
+
+pub fn data_trans1() -> Result<(), Box<dyn Error>> {
+    let pvca = load_pvcamp();
+    let bin: Vec<u8> = bincode::encode_to_vec(&pvca, bincode::config::standard()).unwrap();
+    let fnm = format!("/mnt/e/CHMBACK/pea-data/sgdata/pv_ca_mp.bin");
+    std::fs::write(fnm, bin).unwrap();
+
+    let mut hssf = HashMap::<String, SubInfo>::new();
+    let sbif = ld_p3_sub_inf();
+    for (k, v) in &sbif {
+        hssf.insert(k.to_string(), SubInfo::copy(v));
+    }
+    let bin: Vec<u8> = bincode::encode_to_vec(&hssf, bincode::config::standard()).unwrap();
+    let fnm = format!("/mnt/e/CHMBACK/pea-data/sgdata/sub_inf.bin");
+    std::fs::write(fnm, bin).unwrap();
+
+    let pvca2 = ld_pv_ca_mp();
+    let sbif2 = ld_sub_info();
+    println!("data trans1 a {} - {}", pvca.len(), pvca2.len());
+    println!("data trans1 b {} - {}", sbif.len(), sbif2.len());
+    Ok(())
+}
+
+pub fn ld_pv_ca_mp() -> HashMap<String, f64> {
+    let fnm = format!("/mnt/e/CHMBACK/pea-data/sgdata/pv_ca_mp.bin");
+    let bytes = std::fs::read(fnm).unwrap();
+    let (pvca, _): (HashMap<String, f64>, usize) =
+        bincode::decode_from_slice(&bytes[..], bincode::config::standard()).unwrap();
+    println!("pv ca {}", pvca.len());
+    pvca
+}
+pub fn ld_sub_info() -> HashMap<String, SubInfo> {
+    let fnm = format!("/mnt/e/CHMBACK/pea-data/sgdata/sub_inf.bin");
+    let bytes = std::fs::read(fnm).unwrap();
+    let (sbif, _): (HashMap<String, SubInfo>, usize) =
+        bincode::decode_from_slice(&bytes[..], bincode::config::standard()).unwrap();
+    println!("sb if: {}", sbif.len());
+    sbif
+}

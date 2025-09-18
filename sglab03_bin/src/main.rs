@@ -7,6 +7,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let a2 = env::args().nth(2).unwrap_or("?".to_string());
     let a3 = env::args().nth(3).unwrap_or("?".to_string());
     match a1.as_str() {
+        "data_trans1" => sglib05::p08::data_trans1()?,
         "c01_chk_05" => sglib05::c04::c01_chk_05()?,
         "p08_calc_lp2" => sglib05::p08::p08_calc_lp2(a2.as_str(), a3.as_str())?,
         "p08_calc_lp1" => sglib05::p08::p08_calc_lp1(a2.as_str())?,
@@ -31,8 +32,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         "p03_draw_slp" => sglib05::p03::p03_draw_slp(a2.as_str(), a3.as_str())?,
         "p03_draw_all" => sglib05::p03::p03_draw_all()?,
         "p04_form_sub" => sglib05::p04::p04_form_sub()?,
-        _ => {
-            println!("NG command");
+        n => {
+            println!("'{}' NG command", n);
         }
     }
     let se = now.elapsed().unwrap().as_secs();

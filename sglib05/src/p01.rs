@@ -137,6 +137,8 @@ impl SubAssObj2 {
 
 use crate::p03::SubLoadProfRepr;
 use crate::p04::SubFeedTrans;
+use crate::p08::ld_sub_info;
+use crate::p08::SubInfo;
 use sglab02_lib::sg::wk5::EvDistCalc;
 use sglib04::geo1::CnlData;
 use sglib04::geo1::MeterBill;
@@ -181,7 +183,8 @@ pub struct ProcEngine {
     pub fdlp: Vec<RepLoadProf>,
     pub carg: HashMap<String, f64>,
     pub evpv: HashMap<String, EvDistCalc>,
-    pub sbif: HashMap<String, SubstInfo>,
+    //pub sbif: HashMap<String, SubstInfo>,
+    pub sbif: HashMap<String, SubInfo>,
     pub lp23: HashMap<String, SubLoadProfRepr>,
     pub lp24: HashMap<String, SubLoadProfRepr>,
 }
@@ -329,7 +332,7 @@ impl ProcEngine {
     pub fn prep1() -> Self {
         ProcEngine {
             evpv: p13_ev_distr(&EV_PRV_ADJ_1),
-            sbif: sub_inf().clone(),
+            sbif: ld_sub_info().clone(),
             lp23: p03_load_lp("2023"),
             lp24: p03_load_lp("2024"),
             ..Default::default()
@@ -366,7 +369,7 @@ impl ProcEngine {
     pub fn prep_c01_0() -> Self {
         ProcEngine {
             evpv: p13_ev_distr(&EV_PRV_ADJ_1),
-            sbif: sub_inf().clone(),
+            sbif: ld_sub_info().clone(),
             ..Default::default()
         }
     }
@@ -415,7 +418,7 @@ impl ProcEngine {
     pub fn prep5() -> Self {
         ProcEngine {
             evpv: ev_distr(&EV_PRV_ADJ_2),
-            sbif: sub_inf().clone(),
+            sbif: ld_sub_info().clone(),
             lp23: p03_load_lp("2023"),
             lp24: p03_load_lp("2024"),
             ..Default::default()
@@ -1247,6 +1250,23 @@ fn write_sub_asses3(
 }
 
 use sglab02_lib::sg::load::load_pvcamp;
+/*
+use crate::c04::DNM;
+use std::fs::File;
+use std::io::BufReader;
+
+pub fn load_pvcamp() -> HashMap<String, f64> {
+    //if let Ok(file) = File::open("data/pvcamp.bin") {
+    //if let Ok(file) = File::open(crate::sg::ldp::res("pvcamp.bin")) {
+    if let Ok(file) = File::open(format!("{DNM}/sgdata/pvcamp.bin")) {
+        let rd = BufReader::new(file);
+        if let Ok(pvcamp) = bincode::deserialize_from::<BufReader<File>, HashMap<String, f64>>(rd) {
+            return pvcamp;
+        }
+    }
+    HashMap::new()
+}
+*/
 
 pub fn ev_distr(ev_adx: &[(&str, f64, f64)]) -> HashMap<String, EvDistCalc> {
     let mut pv_ca_mp = load_pvcamp();
