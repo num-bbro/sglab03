@@ -1252,7 +1252,8 @@ pub fn chk_02_1(
                             ///////////////////////////////////////////////////
                             // Meter
                             if let MeterAccType::Small = met.met_type {
-                                if met.main.is_empty() && met.kwh18 > 200f32 {
+                                if met.main.is_empty() && met.kwh18 > 600f32 {
+                                    //if met.main.is_empty() && met.kwh18 > 200f32 {
                                     vt01 += 1f32;
                                     vt02 += met.kwh15;
                                 }
@@ -1442,44 +1443,57 @@ pub const WE_RE: [(VarType, f32); 5] = [
     (VarType::PopTrVt07, 0.10),
 ];
 
-pub const WE_UC1: [(VarType, f32); 14] = [
-    //(VarType::GppVp02, 0.20),
+pub const WE_UC1: [(VarType, f32); 12] = [
     (VarType::SmallSellTrVt02, 0.05),
-    //(VarType::LargeSellTrVt10, 0.05),
-    (VarType::HmChgEvTrVc01, 0.30),
+    (VarType::HmChgEvTrVc01, 0.28),
     (VarType::CntLvPowSatTrVc03, 0.15),
     (VarType::ChgStnCapVc04, 0.05),
-    (VarType::ChgStnSellVc05, 0.05),
     (VarType::MvPowSatTrVc06, 0.05),
     (VarType::PowSolarVc07, 0.15),
     (VarType::ZoneTrVt06, 0.05),
     (VarType::PopTrVt07, 0.05),
     (VarType::MvVsppVc08, 0.05),
-    (VarType::HvSppVc09, 0.05),
-    (VarType::UnbalPowVc12, 0.10),
+    (VarType::HvSppVc09, 0.02),
+    (VarType::UnbalPowVc12, 0.05),
     (VarType::CntUnbalPowVc13, 0.05),
-    (VarType::SelectLikely, 0.00),
+    //(VarType::ChgStnSellVc05, 0.05),
+    //(VarType::GppVp02, 0.20),
+    //(VarType::LargeSellTrVt10, 0.05),
+    //    (VarType::SelectLikely, 0.00),
 ];
 
-pub const WE_UC2: [(VarType, f32); 12] = [
+pub const WE_UC2: [(VarType, f32); 11] = [
     (VarType::SmallSellTrVt02, 0.05),
-    //(VarType::LargeSellTrVt10, 0.10),
     (VarType::HmChgEvTrVc01, 0.05),
     (VarType::CntLvPowSatTrVc03, 0.05),
     (VarType::ChgStnCapVc04, 0.10),
     (VarType::ChgStnSellVc05, 0.10),
     (VarType::MvPowSatTrVc06, 0.15),
-    (VarType::PowSolarVc07, 0.05),
+    (VarType::PowSolarVc07, 0.15),
     (VarType::MvVsppVc08, 0.15),
     (VarType::HvSppVc09, 0.10),
     (VarType::UnbalPowVc12, 0.05),
     (VarType::CntUnbalPowVc13, 0.05),
-    (VarType::SelectLikely, 0.10),
+    //(VarType::LargeSellTrVt10, 0.10),
+    //    (VarType::SelectLikely, 0.10),
 ];
 
-pub const WE_UC3: [(VarType, f32); 12] = [
+pub const WE_UC3: [(VarType, f32); 11] = [
     (VarType::SmallSellTrVt02, 0.10),
-    //(VarType::LargeSellTrVt10, 0.05),
+    (VarType::HmChgEvTrVc01, 0.15),
+    (VarType::CntLvPowSatTrVc03, 0.15),
+    (VarType::ChgStnCapVc04, 0.05),
+    (VarType::MvPowSatTrVc06, 0.05),
+    (VarType::PowSolarVc07, 0.20),
+    (VarType::ZoneTrVt06, 0.10),
+    (VarType::PopTrVt07, 0.05),
+    (VarType::MvVsppVc08, 0.05),
+    (VarType::UnbalPowVc12, 0.05),
+    (VarType::CntUnbalPowVc13, 0.05),
+];
+
+pub const _WE_UC3: [(VarType, f32); 11] = [
+    (VarType::SmallSellTrVt02, 0.10),
     (VarType::HmChgEvTrVc01, 0.15),
     (VarType::CntLvPowSatTrVc03, 0.15),
     (VarType::ChgStnCapVc04, 0.05),
@@ -1490,7 +1504,7 @@ pub const WE_UC3: [(VarType, f32); 12] = [
     (VarType::HvSppVc09, 0.05),
     (VarType::UnbalPowVc12, 0.10),
     (VarType::CntUnbalPowVc13, 0.05),
-    (VarType::SelectLikely, 0.20),
+    //    (VarType::SelectLikely, 0.20),
 ];
 
 pub fn chk_02_2(
@@ -2060,6 +2074,36 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
                     println!(">>>>>>>>>>> {sid} solar: {solar} =============");
                 }
 
+                // re-calculation of value
+                sbas.v[VarType::LvPowSatTrVc02 as usize].v = sbas.v[VarType::PkPowTrVt09 as usize]
+                    .v
+                    / z2o(sbas.v[VarType::PwCapTriVt05 as usize].v);
+                sbas.v[VarType::CntLvPowSatTrVc03 as usize].v =
+                    if sbas.v[VarType::LvPowSatTrVc02 as usize].v > 0.8f32 {
+                        1f32
+                    } else {
+                        0f32
+                    };
+                sbas.v[VarType::ChgStnCapVc04 as usize].v =
+                    sbas.v[VarType::ChgStnCapTrVt03 as usize].v;
+                sbas.v[VarType::ChgStnSellVc05 as usize].v =
+                    sbas.v[VarType::ChgStnSellTrVt04 as usize].v;
+                sbas.v[VarType::MvPowSatTrVc06 as usize].v =
+                    sbas.v[VarType::MaxPosPowSubVs01 as usize].v
+                        / z2o(sbas.v[VarType::SubPowCapVs07 as usize].v);
+                sbas.v[VarType::MvVsppVc08 as usize].v = sbas.v[VarType::VsppMvVs03 as usize].v;
+                sbas.v[VarType::HvSppVc09 as usize].v = sbas.v[VarType::SppHvVs04 as usize].v;
+                sbas.v[VarType::SmallSellVc10 as usize].v =
+                    sbas.v[VarType::SmallSellTrVt02 as usize].v;
+                sbas.v[VarType::LargeSellVc11 as usize].v =
+                    sbas.v[VarType::LargeSellTrVt10 as usize].v;
+                sbas.v[VarType::UnbalPowVc12 as usize].v =
+                    sbas.v[VarType::UnbalPowTrVt08 as usize].v;
+                let v = sbas.v[VarType::UnbalPowTrVt08 as usize].v
+                    / z2o(sbas.v[VarType::PwCapTriVt05 as usize].v);
+                sbas.v[VarType::CntUnbalPowVc13 as usize].v = if v > 0.5f32 { 1f32 } else { 0f32 };
+                // end of recalculation
+
                 sbas.v[VarType::TakeNote as usize].v = note;
                 sbas_mx.max(&sbas);
                 //if let (Some(sbtr), Some(gs)) = (sbtr.get(&sb), sb_inf.get(&sb)) {
@@ -2138,14 +2182,46 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
                     sbas.vy[VarType::Ben26.tousz()].append(&mut ben26v);
                     sbas.vy[VarType::Ben27.tousz()].append(&mut ben27v);
                 }
+                //for tr in v_tras_raw.iter_mut() {
+                //sbas.copy(tras, VarType::SolarEnergy);
+
+                // calculation
+                //}
                 if sbas.v[VarType::TakeNote as usize].v == 1f32 {
                     pvas.add(&sbas);
                 }
                 pvas.copy(tras, VarType::NewCarRegVp01);
                 pvas.copy(tras, VarType::GppVp02);
+
                 v_sbas.push(sbas);
                 //println!("   {sid} - {}", v_tras.len());
             } // end sub loop
+
+            // re-calculation of value
+            pvas.v[VarType::LvPowSatTrVc02 as usize].v = pvas.v[VarType::PkPowTrVt09 as usize].v
+                / z2o(pvas.v[VarType::PwCapTriVt05 as usize].v);
+            pvas.v[VarType::CntLvPowSatTrVc03 as usize].v =
+                if pvas.v[VarType::LvPowSatTrVc02 as usize].v > 0.8f32 {
+                    1f32
+                } else {
+                    0f32
+                };
+            pvas.v[VarType::ChgStnCapVc04 as usize].v = pvas.v[VarType::ChgStnCapTrVt03 as usize].v;
+            pvas.v[VarType::ChgStnSellVc05 as usize].v =
+                pvas.v[VarType::ChgStnSellTrVt04 as usize].v;
+            pvas.v[VarType::MvPowSatTrVc06 as usize].v = pvas.v[VarType::MaxPosPowSubVs01 as usize]
+                .v
+                / z2o(pvas.v[VarType::SubPowCapVs07 as usize].v);
+            pvas.v[VarType::MvVsppVc08 as usize].v = pvas.v[VarType::VsppMvVs03 as usize].v;
+            pvas.v[VarType::HvSppVc09 as usize].v = pvas.v[VarType::SppHvVs04 as usize].v;
+            pvas.v[VarType::SmallSellVc10 as usize].v = pvas.v[VarType::SmallSellTrVt02 as usize].v;
+            pvas.v[VarType::LargeSellVc11 as usize].v = pvas.v[VarType::LargeSellTrVt10 as usize].v;
+            pvas.v[VarType::UnbalPowVc12 as usize].v = pvas.v[VarType::UnbalPowTrVt08 as usize].v;
+            let v = pvas.v[VarType::UnbalPowTrVt08 as usize].v
+                / z2o(pvas.v[VarType::PwCapTriVt05 as usize].v);
+            pvas.v[VarType::CntUnbalPowVc13 as usize].v = if v > 0.5f32 { 1f32 } else { 0f32 };
+            // end of recalculation
+
             v_pvas.push(pvas);
         } // end provi loop
     } // end area
