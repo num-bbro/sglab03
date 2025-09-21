@@ -1249,8 +1249,8 @@ fn write_sub_asses3(
     Ok(())
 }
 
-use sglab02_lib::sg::load::load_pvcamp;
 /*
+use sglab02_lib::sg::load::load_pvcamp;
 use crate::c04::DNM;
 use std::fs::File;
 use std::io::BufReader;
@@ -1267,9 +1267,12 @@ pub fn load_pvcamp() -> HashMap<String, f64> {
     HashMap::new()
 }
 */
+use crate::p08::ld_pv_ca_mp;
 
 pub fn ev_distr(ev_adx: &[(&str, f64, f64)]) -> HashMap<String, EvDistCalc> {
-    let mut pv_ca_mp = load_pvcamp();
+    let mut pv_ca_mp = ld_pv_ca_mp();
+    //let mut pv_ca_mp = load_pvcamp();
+    println!("AAAA {}", pv_ca_mp.len());
     let mut pv_ca_mp2 = HashMap::new();
     let mut tt = 0f64;
     for v in pv_ca_mp.values() {
