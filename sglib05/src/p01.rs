@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::error::Error;
 
-use sglab02_lib::sg::prc5::sub_inf;
+//use sglab02_lib::sg::prc5::sub_inf;
 //use sglib04::geo4::p13_re_plan;
 use sglib04::ld1::p13_am_po_de;
 use sglib04::ld1::p13_aoj;
@@ -426,7 +426,7 @@ impl ProcEngine {
     }
 }
 
-use sglab02_lib::sg::prc1::SubstInfo;
+//use sglab02_lib::sg::prc1::SubstInfo;
 
 pub fn mon_kwh_2_kw(kwh: f32) -> f32 {
     kwh / (24f32 * 30f32) * 3f32

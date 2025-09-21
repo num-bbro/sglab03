@@ -1168,6 +1168,8 @@ pub fn p08_calc_lp3(yr: &str) -> Result<(), Box<dyn Error>> {
 use sglab02_lib::sg::load::load_pvcamp;
 use sglab02_lib::sg::prc1::SubstInfo;
 use sglab02_lib::sg::prc3::ld_p3_sub_inf;
+use sglib04::prc41::ld_sb_tr;
+use sglib04::prc41::SubCalc;
 
 #[derive(Debug, Encode, Decode, Clone, Default)]
 pub struct SubInfo {
@@ -1216,14 +1218,76 @@ impl SubInfo {
     }
 }
 
+#[derive(Debug, Encode, Decode, Clone, Default)]
+pub struct SubCal {
+    pub pv: String,
+    pub sb: String,
+    pub p_tx_cn_m: HashMap<u32, u32>,
+    pub c_tx_cn_m: HashMap<u32, u32>,
+
+    pub mt_ph_a: usize,
+    pub mt_ph_b: usize,
+    pub mt_ph_c: usize,
+    pub mt_1_ph: usize,
+    pub mt_3_ph: usize,
+
+    pub eg_a: f64,
+    pub eg_b: f64,
+    pub eg_c: f64,
+    pub eg_1p: f64,
+    pub eg_3p: f64,
+    pub eg_sm: f64,
+}
+
+impl SubCal {
+    pub fn copy(sc: &SubCalc) -> Self {
+        SubCal {
+            pv: sc.pv.clone(),
+            sb: sc.sb.clone(),
+            p_tx_cn_m: sc.p_tx_cn_m.clone(),
+            c_tx_cn_m: sc.p_tx_cn_m.clone(),
+            mt_ph_a: sc.mt_ph_a.clone(),
+            mt_ph_b: sc.mt_ph_b.clone(),
+            mt_ph_c: sc.mt_ph_c.clone(),
+            mt_1_ph: sc.mt_1_ph.clone(),
+            mt_3_ph: sc.mt_3_ph.clone(),
+            eg_a: sc.eg_a.clone(),
+            eg_b: sc.eg_b.clone(),
+            eg_c: sc.eg_c.clone(),
+            eg_1p: sc.eg_1p.clone(),
+            eg_3p: sc.eg_3p.clone(),
+            eg_sm: sc.eg_sm.clone(),
+        }
+    }
+    pub fn back(sc: &Self) -> SubCalc {
+        SubCalc {
+            pv: sc.pv.clone(),
+            sb: sc.sb.clone(),
+            p_tx_cn_m: sc.p_tx_cn_m.clone(),
+            c_tx_cn_m: sc.p_tx_cn_m.clone(),
+            mt_ph_a: sc.mt_ph_a.clone(),
+            mt_ph_b: sc.mt_ph_b.clone(),
+            mt_ph_c: sc.mt_ph_c.clone(),
+            mt_1_ph: sc.mt_1_ph.clone(),
+            mt_3_ph: sc.mt_3_ph.clone(),
+            eg_a: sc.eg_a.clone(),
+            eg_b: sc.eg_b.clone(),
+            eg_c: sc.eg_c.clone(),
+            eg_1p: sc.eg_1p.clone(),
+            eg_3p: sc.eg_3p.clone(),
+            eg_sm: sc.eg_sm.clone(),
+        }
+    }
+}
+
 pub fn data_trans1() -> Result<(), Box<dyn Error>> {
     let pvca = load_pvcamp();
     let bin: Vec<u8> = bincode::encode_to_vec(&pvca, bincode::config::standard()).unwrap();
     let fnm = format!("/mnt/e/CHMBACK/pea-data/sgdata/pv_ca_mp.bin");
     std::fs::write(fnm, bin).unwrap();
 
-    let mut hssf = HashMap::<String, SubInfo>::new();
     let sbif = ld_p3_sub_inf();
+    let mut hssf = HashMap::<String, SubInfo>::new();
     for (k, v) in &sbif {
         hssf.insert(k.to_string(), SubInfo::copy(v));
     }
@@ -1231,11 +1295,42 @@ pub fn data_trans1() -> Result<(), Box<dyn Error>> {
     let fnm = format!("/mnt/e/CHMBACK/pea-data/sgdata/sub_inf.bin");
     std::fs::write(fnm, bin).unwrap();
 
+    let sbca = ld_sb_tr()?;
+    let mut sbca2 = HashMap::<String, SubCal>::new();
+    for (k, v) in &sbca {
+        sbca2.insert(k.clone(), SubCal::copy(v));
+    }
+    let bin: Vec<u8> = bincode::encode_to_vec(&sbca2, bincode::config::standard()).unwrap();
+    let fnm = format!("/mnt/e/CHMBACK/pea-data/sgdata/sub_cal.bin");
+    println!("sbtr: {}", sbca2.len());
+    std::fs::write(fnm, bin).unwrap();
+
+    let sbca2 = ld_sub_cal();
+    println!("sbcl {} - {}", sbca.len(), sbca2.len());
+
     let pvca2 = ld_pv_ca_mp();
     let sbif2 = ld_sub_info();
     println!("data trans1 a {} - {}", pvca.len(), pvca2.len());
     println!("data trans1 b {} - {}", sbif.len(), sbif2.len());
     Ok(())
+}
+
+pub fn ld_sub_cal() -> HashMap<String, SubCal> {
+    let fnm = format!("/mnt/e/CHMBACK/pea-data/sgdata/sub_cal.bin");
+    let bytes = std::fs::read(fnm).unwrap();
+    let (sbca, _): (HashMap<String, SubCal>, usize) =
+        bincode::decode_from_slice(&bytes[..], bincode::config::standard()).unwrap();
+    println!("sub cal {}", sbca.len());
+    sbca
+}
+
+pub fn ld_sub_calc() -> HashMap<String, SubCalc> {
+    let sbca = ld_sub_cal();
+    let mut sbcalc = HashMap::<String, SubCalc>::new();
+    for (k, v) in &sbca {
+        sbcalc.insert(k.to_string(), SubCal::back(v));
+    }
+    sbcalc
 }
 
 pub fn ld_pv_ca_mp() -> HashMap<String, f64> {
@@ -1246,6 +1341,7 @@ pub fn ld_pv_ca_mp() -> HashMap<String, f64> {
     println!("pv ca {}", pvca.len());
     pvca
 }
+
 pub fn ld_sub_info() -> HashMap<String, SubInfo> {
     let fnm = format!("/mnt/e/CHMBACK/pea-data/sgdata/sub_inf.bin");
     let bytes = std::fs::read(fnm).unwrap();

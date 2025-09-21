@@ -1963,7 +1963,7 @@ use sglib03::prc4::SubBenInfo;
 use sglib04::prc41::SubCalc;
 
 //use sglib04::calc::SubstReport;
-use sglib04::prc41::ld_sb_tr0;
+//use sglib04::prc41::ld_sb_tr0;
 //use sglib04::web1::ben_asset_value;
 use sglib04::web1::ben_bill_accu;
 use sglib04::web1::ben_boxline_save;
@@ -1984,6 +1984,8 @@ use sglib04::web1::ben_tou_update;
 use sglib04::web1::ben_work_save;
 use sglib04::web1::BenProj;
 //use sglib04::web1::CALL_CENTER_COST_UP;
+//use crate::p08::ld_sub_cal;
+use crate::p08::ld_sub_calc;
 use sglib04::web1::M1P_COST;
 use sglib04::web1::M3P_COST;
 use sglib04::web1::OP_YEAR_END;
@@ -2004,36 +2006,45 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
         bincode::decode_from_slice(&buf[..], bincode::config::standard()).unwrap();
     let mut aids: Vec<_> = pea.aream.keys().collect();
     aids.sort();
+    //println!("..1");
     let subhs = p01_chk();
-    let sbtr = ld_sb_tr0();
-    println!("sbtr: {}", sbtr.len());
+    //println!("..1.1");
+    //let sbtr = ld_sb_tr0();
+    let sbtr = ld_sub_calc();
+    //println!("..1.2");
+    //println!("sbtr: {}", sbtr.len());
     let mut emp = Vec::<(u32, f32)>::new();
     for y in OP_YEAR_START..=OP_YEAR_END {
         emp.push((y, 0f32));
     }
     //
     //let mut pvcn = 0;
+    //println!("..2");
     let mut v_pvas = Vec::<PeaAssVar>::new();
     let mut v_sbas = Vec::<PeaAssVar>::new();
     let mut sbas_mx = PeaAssVar::default();
     for aid in aids {
+        //println!("..3");
         let Some(ar) = pea.aream.get(aid) else {
             continue;
         };
+        //println!("..4");
         let mut pids: Vec<_> = ar.provm.keys().collect();
         pids.sort();
         for pid in pids {
+            //println!("..5");
             let Some(prov) = ar.provm.get(pid) else {
                 continue;
             };
+            //println!("..6");
             let mut pvas = PeaAssVar::from(0u64);
             pvas.arid = aid.to_string();
             pvas.pvid = pid.to_string();
-            //println!("  pv:{pid}");
+            println!("  pv:{pid}");
             let mut sids: Vec<_> = prov.subm.keys().collect();
             sids.sort();
             for sid in sids {
-                let Some(sb) = prov.subm.get(sid) else {
+                let Some(_sb) = prov.subm.get(sid) else {
                     continue;
                 };
                 let Ok(buf) = std::fs::read(format!("{DNM}/{sid}-rw3.bin")) else {
