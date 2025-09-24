@@ -1338,7 +1338,7 @@ pub fn ld_pv_ca_mp() -> HashMap<String, f64> {
     let bytes = std::fs::read(fnm).unwrap();
     let (pvca, _): (HashMap<String, f64>, usize) =
         bincode::decode_from_slice(&bytes[..], bincode::config::standard()).unwrap();
-    println!("pv ca {}", pvca.len());
+    //println!("pv ca {}", pvca.len());
     pvca
 }
 

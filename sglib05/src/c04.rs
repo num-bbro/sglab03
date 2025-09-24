@@ -974,6 +974,7 @@ pub fn c04_chk_lp_01() -> Result<(), Box<dyn Error>> {
 }
 
 use crate::p01::p01_chk;
+//use crate::p08::ld_sub_info;
 use crate::p08::p08_class_val;
 use crate::p08::ProfType;
 
@@ -1003,6 +1004,7 @@ pub fn chk_02_1(
             }
         }
     }
+    //let sbifx = ld_sub_info();
 
     // area loop 1
     for id in aids {
@@ -1056,6 +1058,25 @@ pub fn chk_02_1(
                 };
                 let (sub, _): (PeaSub, usize) =
                     bincode::decode_from_slice(&buf[..], bincode::config::standard()).unwrap();
+
+                /*
+                let Some(sbx) = sbifx.get(sid) else {
+                    continue;
+                };
+                println!("{sbx:?}");
+                */
+
+                /*
+                let mut aoj_sz = HashMap::<String, String>::new();
+                let mut level = HashMap::<String, String>::new();
+                for aoj in &sb.aojv {
+                    aoj_sz
+                        .entry(aoj.aoj_sz.clone())
+                        .or_insert_with(|| aoj.aoj_sz.clone());
+                }
+                println!("aoj_sz {sid} {aoj_sz:?} : {}", sb.aojv.len());
+                */
+
                 //println!("      feed: {}", sub.feeders.len());
 
                 // Substation
@@ -1127,6 +1148,7 @@ pub fn chk_02_1(
                 let mut fids: Vec<_> = sub.feedm.keys().collect();
                 fids.sort();
                 let mut s_tr_ass = Vec::<PeaAssVar>::new();
+                //let mut aoj_m = HashMap::<usize, usize>::new();
                 for fid in fids {
                     let Some(fd) = sub.feedm.get(fid) else {
                         continue;
@@ -1241,6 +1263,7 @@ pub fn chk_02_1(
                                 .unwrap_or("-".to_string())
                                 .to_string()
                         };
+
                         let mut vt01 = 0f32;
                         let mut vt02 = 0f32;
                         let mut vt10 = 0f32;
@@ -1408,6 +1431,7 @@ pub fn chk_02_1(
                         tr_as.v[VarType::EvCarLikely as usize].v = evlk;
                         tr_as.v[VarType::SelectLikely as usize].v = selk;
                         tr_as.v[VarType::SolarEnergy as usize].v = solar;
+                        //tr_as.v[VarType::OfficeCovWg.tousz()].v = aojs.len();
                         tras_mx1.max(&tr_as);
                         //s_tr_sum.add(&tr_as);
                         s_tr_ass.push(tr_as);
@@ -1425,25 +1449,25 @@ pub fn chk_02_1(
 }
 
 pub const WE_EV: [(VarType, f32); 8] = [
-    (VarType::NewCarRegVp01, 0.20),
-    (VarType::GppVp02, 0.20),
+    (VarType::NewCarRegVp01, 0.15),
+    (VarType::GppVp02, 0.15),
     (VarType::NoMeterTransVt01, 0.05),
-    (VarType::SmallSellTrVt02, 0.30),
+    (VarType::SmallSellTrVt02, 0.20),
     (VarType::ChgStnCapTrVt03, 0.15),
-    (VarType::ChgStnSellTrVt04, 0.15),
-    (VarType::ZoneTrVt06, 0.20),
+    (VarType::ChgStnSellTrVt04, 0.10),
+    (VarType::ZoneTrVt06, 0.10),
     (VarType::PopTrVt07, 0.10),
 ];
 
 pub const WE_RE: [(VarType, f32); 5] = [
     (VarType::GppVp02, 0.20),
-    (VarType::NoMeterTransVt01, 0.05),
+    (VarType::NoMeterTransVt01, 0.10),
     (VarType::SmallSellTrVt02, 0.30),
     (VarType::ZoneTrVt06, 0.20),
-    (VarType::PopTrVt07, 0.10),
+    (VarType::PopTrVt07, 0.20),
 ];
 
-pub const WE_UC1: [(VarType, f32); 12] = [
+pub const WE_UC1: [(VarType, f32); 11] = [
     (VarType::SmallSellTrVt02, 0.05),
     (VarType::HmChgEvTrVc01, 0.28),
     (VarType::CntLvPowSatTrVc03, 0.15),
@@ -1454,31 +1478,33 @@ pub const WE_UC1: [(VarType, f32); 12] = [
     (VarType::PopTrVt07, 0.05),
     (VarType::MvVsppVc08, 0.05),
     (VarType::HvSppVc09, 0.02),
-    (VarType::UnbalPowVc12, 0.05),
-    (VarType::CntUnbalPowVc13, 0.05),
+    (VarType::CntUnbalPowVc13, 0.10),
+    //(VarType::UnbalPowVc12, 0.05),
     //(VarType::ChgStnSellVc05, 0.05),
     //(VarType::GppVp02, 0.20),
     //(VarType::LargeSellTrVt10, 0.05),
     //    (VarType::SelectLikely, 0.00),
 ];
 
-pub const WE_UC2: [(VarType, f32); 11] = [
-    (VarType::SmallSellTrVt02, 0.05),
-    (VarType::HmChgEvTrVc01, 0.05),
-    (VarType::CntLvPowSatTrVc03, 0.05),
-    (VarType::ChgStnCapVc04, 0.10),
-    (VarType::ChgStnSellVc05, 0.10),
+pub const WE_UC2: [(VarType, f32); 10] = [
+    (VarType::SmallSellTrVt02, 0.10),
+    (VarType::HmChgEvTrVc01, 0.10),
+    (VarType::CntLvPowSatTrVc03, 0.15),
+    (VarType::ChgStnCapVc04, 0.05),
     (VarType::MvPowSatTrVc06, 0.15),
     (VarType::PowSolarVc07, 0.15),
+    (VarType::ZoneTrVt06, 0.05),
+    (VarType::PopTrVt07, 0.05),
     (VarType::MvVsppVc08, 0.15),
-    (VarType::HvSppVc09, 0.10),
-    (VarType::UnbalPowVc12, 0.05),
-    (VarType::CntUnbalPowVc13, 0.05),
+    (VarType::HvSppVc09, 0.05),
+    //(VarType::CntUnbalPowVc13, 0.10),
+    //    (VarType::ChgStnSellVc05, 0.10),
+    //(VarType::UnbalPowVc12, 0.05)2
     //(VarType::LargeSellTrVt10, 0.10),
     //    (VarType::SelectLikely, 0.10),
 ];
 
-pub const WE_UC3: [(VarType, f32); 11] = [
+pub const WE_UC3: [(VarType, f32); 10] = [
     (VarType::SmallSellTrVt02, 0.10),
     (VarType::HmChgEvTrVc01, 0.15),
     (VarType::CntLvPowSatTrVc03, 0.15),
@@ -1488,22 +1514,22 @@ pub const WE_UC3: [(VarType, f32); 11] = [
     (VarType::ZoneTrVt06, 0.10),
     (VarType::PopTrVt07, 0.05),
     (VarType::MvVsppVc08, 0.05),
-    (VarType::UnbalPowVc12, 0.05),
-    (VarType::CntUnbalPowVc13, 0.05),
+    (VarType::CntUnbalPowVc13, 0.10),
+    //(VarType::UnbalPowVc12, 0.05),
 ];
 
-pub const _WE_UC3: [(VarType, f32); 11] = [
+pub const _WE_UC3: [(VarType, f32); 10] = [
     (VarType::SmallSellTrVt02, 0.10),
-    (VarType::HmChgEvTrVc01, 0.15),
+    (VarType::HmChgEvTrVc01, 0.10),
     (VarType::CntLvPowSatTrVc03, 0.15),
     (VarType::ChgStnCapVc04, 0.05),
-    (VarType::ChgStnSellVc05, 0.05),
-    (VarType::MvPowSatTrVc06, 0.05),
+    (VarType::MvPowSatTrVc06, 0.10),
     (VarType::PowSolarVc07, 0.15),
-    (VarType::MvVsppVc08, 0.05),
-    (VarType::HvSppVc09, 0.05),
-    (VarType::UnbalPowVc12, 0.10),
-    (VarType::CntUnbalPowVc13, 0.05),
+    (VarType::ZoneTrVt06, 0.10),
+    (VarType::PopTrVt07, 0.05),
+    (VarType::MvVsppVc08, 0.10),
+    (VarType::CntUnbalPowVc13, 0.10),
+    //(VarType::ChgStnSellVc05, 0.05),
     //    (VarType::SelectLikely, 0.20),
 ];
 
@@ -2022,7 +2048,8 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
     //println!("..2");
     let mut v_pvas = Vec::<PeaAssVar>::new();
     let mut v_sbas = Vec::<PeaAssVar>::new();
-    let mut sbas_mx = PeaAssVar::default();
+    //let mut sbas_mx = PeaAssVar::default();
+    let mut sbas_mx = PeaAssVar::from(0u64);
     for aid in aids {
         //println!("..3");
         let Some(ar) = pea.aream.get(aid) else {
@@ -2067,9 +2094,28 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
                     0f32
                 };
 
+                let mut m_aoj = HashMap::<String, String>::new();
                 for tras in &v_tras_raw {
                     sbas.add(tras);
+                    let aoj = tras.aoj.clone();
+                    m_aoj.entry(aoj.clone()).or_insert_with(|| aoj.clone());
                 }
+                /*
+                let ar_e = pea.aream.entry(ar).or_insert_with(|| PeaArea {
+                    arid: sf.arid.to_string(),
+                    ..Default::default()
+                });
+                        */
+                let mut aoj = String::new();
+                for (_, v) in &m_aoj {
+                    use std::fmt::Write;
+                    if !aoj.is_empty() {
+                        write!(aoj, ",").unwrap();
+                    }
+                    write!(aoj, "{}", v).unwrap();
+                }
+                sbas.aoj = "AOJ".to_string();
+                sbas.aoj = aoj;
                 sbas.copy(tras, VarType::NewCarRegVp01);
                 sbas.copy(tras, VarType::GppVp02);
                 sbas.copy(tras, VarType::MaxPosPowSubVs01);
@@ -2272,6 +2318,7 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
     write_trn_ass_02(&v_sbas, &format!("{DNM}/000-sbrw0.txt"))?;
     //write_ass_csv_02(&v_sbas, &format!("{DNM}/000-sbrw0.csv"))?;
 
+    println!("SBAS MAX:{:?}", sbas_mx.v);
     let mut v_sbas_no = v_sbas.clone();
     for sub in v_sbas_no.iter_mut() {
         sub.nor(&sbas_mx);
