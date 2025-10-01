@@ -3221,7 +3221,7 @@ dependencies = [
 
 [[package]]
 name = "sglib05"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "ab_glyph",
  "bincode 2.0.1",

@@ -318,6 +318,7 @@ pub struct PeaAssVar {
     pub own: String,
     pub peano: String,
     pub aoj: String,
+    pub aojv: Vec<AojObj>,
     pub set: u32,
     pub v: Vec<AssVar>,
     pub res: f32,
@@ -593,6 +594,7 @@ pub fn c01_chk_01_02(pea: &Pea, dnm: &str, g0: &ProcEngine) -> Result<(), Box<dy
     let mut aids: Vec<_> = pea.aream.keys().collect();
     aids.sort();
 
+    let mut aoj_sbv = HashMap::<String, Vec<String>>::new();
     for id in &aids {
         println!("ar:{id}");
         let id = id.to_string();
@@ -804,6 +806,8 @@ pub fn c01_chk_01_02(pea: &Pea, dnm: &str, g0: &ProcEngine) -> Result<(), Box<dy
                         trcn,
                     };
                     aojv.push(aoj);
+                    let aojsb = aoj_sbv.entry(code.to_string()).or_default();
+                    aojsb.push(sbid.to_string());
                 } // end aoj loop
                 sb.aojv = aojv;
 
@@ -814,6 +818,10 @@ pub fn c01_chk_01_02(pea: &Pea, dnm: &str, g0: &ProcEngine) -> Result<(), Box<dy
             } // end sub loop
         } // end province loop
     } // end area loop
+
+    let bin: Vec<u8> = bincode::encode_to_vec(&aoj_sbv, bincode::config::standard()).unwrap();
+    std::fs::write(format!("{dnm}/aoj_sbv.bin"), bin).unwrap();
+    println!("       ===== write to aoj_sbv.bin");
 
     Ok(())
 }
@@ -1504,7 +1512,19 @@ pub const WE_UC2: [(VarType, f32); 10] = [
     //    (VarType::SelectLikely, 0.10),
 ];
 
-pub const WE_UC3: [(VarType, f32); 10] = [
+pub const WE_UC3: [(VarType, f32); 8] = [
+    (VarType::PowSolarVc07, 0.25),
+    (VarType::HmChgEvTrVc01, 0.25),
+    (VarType::SmallSellTrVt02, 0.10),
+    (VarType::CntLvPowSatTrVc03, 0.10),
+    (VarType::CntUnbalPowVc13, 0.10),
+    (VarType::MvVsppVc08, 0.10),
+    (VarType::ZoneTrVt06, 0.05),
+    (VarType::PopTrVt07, 0.05),
+    //(VarType::UnbalPowVc12, 0.05),
+];
+
+pub const _WE_UC3_2: [(VarType, f32); 10] = [
     (VarType::SmallSellTrVt02, 0.10),
     (VarType::HmChgEvTrVc01, 0.15),
     (VarType::CntLvPowSatTrVc03, 0.15),
@@ -2071,7 +2091,7 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
             let mut sids: Vec<_> = prov.subm.keys().collect();
             sids.sort();
             for sid in sids {
-                let Some(_sb) = prov.subm.get(sid) else {
+                let Some(sb) = prov.subm.get(sid) else {
                     continue;
                 };
                 let Ok(buf) = std::fs::read(format!("{DNM}/{sid}-rw3.bin")) else {
@@ -2116,6 +2136,7 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
                 }
                 sbas.aoj = "AOJ".to_string();
                 sbas.aoj = aoj;
+                sbas.aojv = sb.aojv.clone();
                 sbas.copy(tras, VarType::NewCarRegVp01);
                 sbas.copy(tras, VarType::GppVp02);
                 sbas.copy(tras, VarType::MaxPosPowSubVs01);
@@ -2668,4 +2689,325 @@ pub fn ben_model_entry(sbtr: &SubCalc, ben: &SubBenInfo) -> BenProj {
     }
     //println!();
     BenProj { proj }
+}
+
+pub fn c01_chk_03_2() -> Result<(), Box<dyn Error>> {
+    //let dnm = "/mnt/e/CHMBACK/pea-data/c01_pea";
+    let buf = std::fs::read(format!("{DNM}/000_pea.bin")).unwrap();
+    let (pea, _): (Pea, usize) =
+        bincode::decode_from_slice(&buf[..], bincode::config::standard()).unwrap();
+    let mut aids: Vec<_> = pea.aream.keys().collect();
+    aids.sort();
+    //println!("..1");
+    let subhs = p01_chk();
+    //println!("..1.1");
+    //let sbtr = ld_sb_tr0();
+    let sbtr = ld_sub_calc();
+    //println!("..1.2");
+    //println!("sbtr: {}", sbtr.len());
+    let mut emp = Vec::<(u32, f32)>::new();
+    for y in OP_YEAR_START..=OP_YEAR_END {
+        emp.push((y, 0f32));
+    }
+    //
+    //let mut pvcn = 0;
+    //println!("..2");
+    let mut v_pvas = Vec::<PeaAssVar>::new();
+    let mut v_sbas = Vec::<PeaAssVar>::new();
+    //let mut sbas_mx = PeaAssVar::default();
+    let mut sbas_mx = PeaAssVar::from(0u64);
+    for aid in aids {
+        //println!("..3");
+        let Some(ar) = pea.aream.get(aid) else {
+            continue;
+        };
+        //println!("..4");
+        let mut pids: Vec<_> = ar.provm.keys().collect();
+        pids.sort();
+        for pid in pids {
+            //println!("..5");
+            let Some(prov) = ar.provm.get(pid) else {
+                continue;
+            };
+            //println!("..6");
+            let mut pvas = PeaAssVar::from(0u64);
+            pvas.arid = aid.to_string();
+            pvas.pvid = pid.to_string();
+            println!("  pv:{pid}");
+            let mut sids: Vec<_> = prov.subm.keys().collect();
+            sids.sort();
+            for sid in sids {
+                let Some(_sb) = prov.subm.get(sid) else {
+                    continue;
+                };
+                let Ok(buf) = std::fs::read(format!("{DNM}/{sid}-rw3.bin")) else {
+                    continue;
+                };
+                let (v_tras_raw, _): (Vec<PeaAssVar>, usize) =
+                    bincode::decode_from_slice(&buf[..], bincode::config::standard()).unwrap();
+                if v_tras_raw.is_empty() {
+                    println!("    {sid} - NO data ");
+                    continue;
+                }
+                let tras = &v_tras_raw[0];
+                let mut sbas = PeaAssVar::from(0u64);
+                sbas.arid = aid.to_string();
+                sbas.pvid = pid.to_string();
+                sbas.sbid = tras.sbid.to_string();
+                let note = if subhs.contains(&sbas.sbid) {
+                    1f32
+                } else {
+                    0f32
+                };
+
+                let mut m_aoj = HashMap::<String, String>::new();
+                for tras in &v_tras_raw {
+                    sbas.add(tras);
+                    let aoj = tras.aoj.clone();
+                    m_aoj.entry(aoj.clone()).or_insert_with(|| aoj.clone());
+                }
+                /*
+                let ar_e = pea.aream.entry(ar).or_insert_with(|| PeaArea {
+                    arid: sf.arid.to_string(),
+                    ..Default::default()
+                });
+                        */
+                let mut aoj = String::new();
+                for (_, v) in &m_aoj {
+                    use std::fmt::Write;
+                    if !aoj.is_empty() {
+                        write!(aoj, ",").unwrap();
+                    }
+                    write!(aoj, "{}", v).unwrap();
+                }
+                sbas.aoj = "AOJ".to_string();
+                sbas.aoj = aoj;
+                sbas.copy(tras, VarType::NewCarRegVp01);
+                sbas.copy(tras, VarType::GppVp02);
+                sbas.copy(tras, VarType::MaxPosPowSubVs01);
+                sbas.copy(tras, VarType::MaxNegPowSubVs02);
+                sbas.copy(tras, VarType::VsppMvVs03);
+                sbas.copy(tras, VarType::SppHvVs04);
+                sbas.copy(tras, VarType::BigLotMvVs05);
+                sbas.copy(tras, VarType::BigLotHvVs06);
+                sbas.copy(tras, VarType::SubPowCapVs07);
+                sbas.copy(tras, VarType::SolarEnergy);
+                let solar = sbas.v[VarType::SolarEnergy as usize].v;
+                if solar > 0f32 {
+                    println!(">>>>>>>>>>> {sid} solar: {solar} =============");
+                }
+
+                // re-calculation of value
+                sbas.v[VarType::LvPowSatTrVc02 as usize].v = sbas.v[VarType::PkPowTrVt09 as usize]
+                    .v
+                    / z2o(sbas.v[VarType::PwCapTriVt05 as usize].v);
+                sbas.v[VarType::CntLvPowSatTrVc03 as usize].v =
+                    if sbas.v[VarType::LvPowSatTrVc02 as usize].v > 0.8f32 {
+                        1f32
+                    } else {
+                        0f32
+                    };
+                sbas.v[VarType::ChgStnCapVc04 as usize].v =
+                    sbas.v[VarType::ChgStnCapTrVt03 as usize].v;
+                sbas.v[VarType::ChgStnSellVc05 as usize].v =
+                    sbas.v[VarType::ChgStnSellTrVt04 as usize].v;
+                sbas.v[VarType::MvPowSatTrVc06 as usize].v =
+                    sbas.v[VarType::MaxPosPowSubVs01 as usize].v
+                        / z2o(sbas.v[VarType::SubPowCapVs07 as usize].v);
+                sbas.v[VarType::MvVsppVc08 as usize].v = sbas.v[VarType::VsppMvVs03 as usize].v;
+                sbas.v[VarType::HvSppVc09 as usize].v = sbas.v[VarType::SppHvVs04 as usize].v;
+                sbas.v[VarType::SmallSellVc10 as usize].v =
+                    sbas.v[VarType::SmallSellTrVt02 as usize].v;
+                sbas.v[VarType::LargeSellVc11 as usize].v =
+                    sbas.v[VarType::LargeSellTrVt10 as usize].v;
+                sbas.v[VarType::UnbalPowVc12 as usize].v =
+                    sbas.v[VarType::UnbalPowTrVt08 as usize].v;
+                let v = sbas.v[VarType::UnbalPowTrVt08 as usize].v
+                    / z2o(sbas.v[VarType::PwCapTriVt05 as usize].v);
+                sbas.v[VarType::CntUnbalPowVc13 as usize].v = if v > 0.5f32 { 1f32 } else { 0f32 };
+                // end of recalculation
+
+                sbas.v[VarType::TakeNote as usize].v = note;
+                sbas_mx.max(&sbas);
+                //if let (Some(sbtr), Some(gs)) = (sbtr.get(&sb), sb_inf.get(&sb)) {
+                if let Some(sbtr) = sbtr.get(&sbas.sbid) {
+                    use sglib03::prc4::ld_ben_bess1;
+                    let ben = ld_ben_bess1(&sbas.sbid);
+                    let ben8 = ben_bill_accu(sbtr, &ben);
+                    let ben9 = ben_cash_flow(sbtr, &ben);
+                    let ben10 = ben_dr_save(sbtr, &ben);
+                    let mut ben11 = BenProj { proj: emp.clone() };
+                    let mut ben12 = BenProj { proj: emp.clone() };
+                    let mut ben13 = BenProj { proj: emp.clone() };
+                    let mut ben14 = BenProj { proj: emp.clone() };
+                    //print!(" {}", sb.sbtp);
+                    if ben.mx_pw > 0f32 && ben.grw < 7f32 && ben.be_start <= 3 && ben.trlm > 40f32
+                    //&& (sb.conf == "AIS" || sb.conf == "GIS")
+                    {
+                        let (be_sub_save, be_re_diff, be_svg_save, be_en_added) =
+                            ben_amt_proj(&ben);
+                        ben11 = be_sub_save;
+                        ben12 = be_svg_save;
+                        ben13 = be_en_added;
+                        ben14 = be_re_diff;
+                    }
+                    let ben15 = ben_boxline_save(sbtr, &ben);
+                    let ben16 = ben_work_save(sbtr, &ben);
+                    let ben17 = ben_sell_meter(sbtr, &ben);
+                    let ben18 = ben_emeter(sbtr, &ben);
+                    let ben19 = ben_mt_read(sbtr, &ben);
+                    let ben20 = ben_mt_disconn(sbtr, &ben);
+                    let ben21 = ben_tou_sell(sbtr, &ben);
+                    let ben22 = ben_tou_read(sbtr, &ben);
+                    let ben23 = ben_tou_update(sbtr, &ben);
+                    let ben24 = ben_outage_labor(sbtr, &ben);
+                    let ben25 = ben_reduce_complain(sbtr, &ben);
+                    let ben26 = ben_asset_value(sbtr, &ben);
+                    let ben27 = ben_model_entry(sbtr, &ben);
+                    let mut ben8v = ben8.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben9v = ben9.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben10v = ben10.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben11v = ben11.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben12v = ben12.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben13v = ben13.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben14v = ben14.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben15v = ben15.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben16v = ben16.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben17v = ben17.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben18v = ben18.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben19v = ben19.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben20v = ben20.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben21v = ben21.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben22v = ben22.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben23v = ben23.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben24v = ben24.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben25v = ben25.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben26v = ben26.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    let mut ben27v = ben27.proj.iter().map(|(_, b)| *b).collect::<Vec<f32>>();
+                    sbas.vy[VarType::Ben8.tousz()].append(&mut ben8v);
+                    sbas.vy[VarType::Ben9.tousz()].append(&mut ben9v);
+                    sbas.vy[VarType::Ben10.tousz()].append(&mut ben10v);
+                    sbas.vy[VarType::Ben11.tousz()].append(&mut ben11v);
+                    sbas.vy[VarType::Ben12.tousz()].append(&mut ben12v);
+                    sbas.vy[VarType::Ben13.tousz()].append(&mut ben13v);
+                    sbas.vy[VarType::Ben14.tousz()].append(&mut ben14v);
+                    sbas.vy[VarType::Ben15.tousz()].append(&mut ben15v);
+                    sbas.vy[VarType::Ben16.tousz()].append(&mut ben16v);
+                    sbas.vy[VarType::Ben17.tousz()].append(&mut ben17v);
+                    sbas.vy[VarType::Ben18.tousz()].append(&mut ben18v);
+                    sbas.vy[VarType::Ben19.tousz()].append(&mut ben19v);
+                    sbas.vy[VarType::Ben20.tousz()].append(&mut ben20v);
+                    sbas.vy[VarType::Ben21.tousz()].append(&mut ben21v);
+                    sbas.vy[VarType::Ben22.tousz()].append(&mut ben22v);
+                    sbas.vy[VarType::Ben23.tousz()].append(&mut ben23v);
+                    sbas.vy[VarType::Ben24.tousz()].append(&mut ben24v);
+                    sbas.vy[VarType::Ben25.tousz()].append(&mut ben25v);
+                    sbas.vy[VarType::Ben26.tousz()].append(&mut ben26v);
+                    sbas.vy[VarType::Ben27.tousz()].append(&mut ben27v);
+                }
+                //for tr in v_tras_raw.iter_mut() {
+                //sbas.copy(tras, VarType::SolarEnergy);
+
+                // calculation
+                //}
+                if sbas.v[VarType::TakeNote as usize].v == 1f32 {
+                    pvas.add(&sbas);
+                }
+                pvas.copy(tras, VarType::NewCarRegVp01);
+                pvas.copy(tras, VarType::GppVp02);
+
+                v_sbas.push(sbas);
+                //println!("   {sid} - {}", v_tras.len());
+            } // end sub loop
+
+            // re-calculation of value
+            pvas.v[VarType::LvPowSatTrVc02 as usize].v = pvas.v[VarType::PkPowTrVt09 as usize].v
+                / z2o(pvas.v[VarType::PwCapTriVt05 as usize].v);
+            pvas.v[VarType::CntLvPowSatTrVc03 as usize].v =
+                if pvas.v[VarType::LvPowSatTrVc02 as usize].v > 0.8f32 {
+                    1f32
+                } else {
+                    0f32
+                };
+            pvas.v[VarType::ChgStnCapVc04 as usize].v = pvas.v[VarType::ChgStnCapTrVt03 as usize].v;
+            pvas.v[VarType::ChgStnSellVc05 as usize].v =
+                pvas.v[VarType::ChgStnSellTrVt04 as usize].v;
+            pvas.v[VarType::MvPowSatTrVc06 as usize].v = pvas.v[VarType::MaxPosPowSubVs01 as usize]
+                .v
+                / z2o(pvas.v[VarType::SubPowCapVs07 as usize].v);
+            pvas.v[VarType::MvVsppVc08 as usize].v = pvas.v[VarType::VsppMvVs03 as usize].v;
+            pvas.v[VarType::HvSppVc09 as usize].v = pvas.v[VarType::SppHvVs04 as usize].v;
+            pvas.v[VarType::SmallSellVc10 as usize].v = pvas.v[VarType::SmallSellTrVt02 as usize].v;
+            pvas.v[VarType::LargeSellVc11 as usize].v = pvas.v[VarType::LargeSellTrVt10 as usize].v;
+            pvas.v[VarType::UnbalPowVc12 as usize].v = pvas.v[VarType::UnbalPowTrVt08 as usize].v;
+            let v = pvas.v[VarType::UnbalPowTrVt08 as usize].v
+                / z2o(pvas.v[VarType::PwCapTriVt05 as usize].v);
+            pvas.v[VarType::CntUnbalPowVc13 as usize].v = if v > 0.5f32 { 1f32 } else { 0f32 };
+            // end of recalculation
+
+            v_pvas.push(pvas);
+        } // end provi loop
+    } // end area
+    let mut uc1_v: Vec<_> = v_sbas
+        .iter()
+        .enumerate()
+        .map(|(i, s)| (s.v[VarType::Uc1ValVc14 as usize].v, i))
+        .collect();
+    uc1_v.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+    for (r, (_, i)) in uc1_v.iter().enumerate() {
+        v_sbas[*i].v[VarType::Uc1RankVc17 as usize].v = r as f32;
+    }
+
+    let mut uc2_v: Vec<_> = v_sbas
+        .iter()
+        .enumerate()
+        .map(|(i, s)| (s.v[VarType::Uc2ValVc15 as usize].v, i))
+        .collect();
+    uc2_v.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+    for (r, (_, i)) in uc2_v.iter().enumerate() {
+        v_sbas[*i].v[VarType::Uc2RankVc18 as usize].v = r as f32;
+    }
+
+    let mut uc3_v: Vec<_> = v_sbas
+        .iter()
+        .enumerate()
+        .map(|(i, s)| (s.v[VarType::Uc3ValVc16 as usize].v, i))
+        .collect();
+    uc3_v.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+    for (r, (_, i)) in uc3_v.iter().enumerate() {
+        v_sbas[*i].v[VarType::Uc3RankVc19 as usize].v = r as f32;
+    }
+
+    // save ev bin
+    let bin: Vec<u8> = bincode::encode_to_vec(&v_sbas, bincode::config::standard()).unwrap();
+    std::fs::write(format!("{DNM}/000-sbrw.bin"), bin).unwrap();
+    write_trn_ass_02(&v_sbas, &format!("{DNM}/000-sbrw0.txt"))?;
+    //write_ass_csv_02(&v_sbas, &format!("{DNM}/000-sbrw0.csv"))?;
+
+    println!("SBAS MAX:{:?}", sbas_mx.v);
+    let mut v_sbas_no = v_sbas.clone();
+    for sub in v_sbas_no.iter_mut() {
+        sub.nor(&sbas_mx);
+    }
+    let bin: Vec<u8> = bincode::encode_to_vec(&v_sbas_no, bincode::config::standard()).unwrap();
+    std::fs::write(format!("{DNM}/000-sbno.bin"), bin).unwrap();
+    write_trn_ass_02(&v_sbas_no, &format!("{DNM}/000-sbno0.txt"))?;
+    //write_ass_csv_02(&v_sbas_no, &format!("{DNM}/000-sbno0.csv"))?;
+
+    let mut ben80 = 0.0;
+    for pvas in &v_pvas {
+        let ben8n = pvas.vy[VarType::Ben8.tousz()].len();
+        let mut ben8a = 0.0;
+        for b8 in &pvas.vy[VarType::Ben8.tousz()] {
+            ben8a += b8;
+        }
+        ben80 += ben8a;
+        println!("{} - {ben8n} = {ben8a}", pvas.pvid);
+    }
+    println!("{ben80}");
+    let bin: Vec<u8> = bincode::encode_to_vec(&v_pvas, bincode::config::standard()).unwrap();
+    std::fs::write(format!("{DNM}/000-pvrw.bin"), bin).unwrap();
+    //write_trn_ass_02(&v_pvas, &format!("{DNM}/000-pvrw.txt"))?;
+    //write_ass_csv_02(&v_sbas_no, &format!("{DNM}/000-pvrw.csv"))?;
+    Ok(())
 }
