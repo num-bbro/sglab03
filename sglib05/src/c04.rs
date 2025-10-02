@@ -530,6 +530,11 @@ pub fn c01_chk_01() -> Result<(), Box<dyn Error>> {
     let g0 = ProcEngine::prep5();
     let pea = c01_chk_01_01(DNM, &g0)?;
     c01_chk_01_02(&pea, DNM, &g0)?;
+
+    let bin: Vec<u8> = bincode::encode_to_vec(&pea, bincode::config::standard()).unwrap();
+    std::fs::write(format!("{DNM}/000_pea.bin"), bin).unwrap();
+    println!("write2 to 000_pea.bin");
+
     Ok(())
 }
 
@@ -591,6 +596,7 @@ pub fn c01_chk_01_01(dnm: &str, g0: &ProcEngine) -> Result<Pea, Box<dyn Error>> 
 
 pub fn c01_chk_01_02(pea: &Pea, dnm: &str, g0: &ProcEngine) -> Result<(), Box<dyn Error>> {
     let smrt = Regex::new(r"[12].*").unwrap();
+    //let aream = pea.aream.clone();
     let mut aids: Vec<_> = pea.aream.keys().collect();
     aids.sort();
 
@@ -602,6 +608,7 @@ pub fn c01_chk_01_02(pea: &Pea, dnm: &str, g0: &ProcEngine) -> Result<(), Box<dy
         let Some(ar) = pea.aream.get(&id) else {
             continue;
         };
+        //let provm = ar.provm.clone();
         let mut pids: Vec<_> = ar.provm.keys().collect();
         pids.sort();
         for id in &pids {
@@ -624,6 +631,7 @@ pub fn c01_chk_01_02(pea: &Pea, dnm: &str, g0: &ProcEngine) -> Result<(), Box<dy
             println!("    ev rt: {}", ev.ev_pc);
             println!("    gpp : {}", gpp);
 
+            //let mut subm = pr.subm.clone();
             let mut sids: Vec<_> = pr.subm.keys().collect();
             sids.sort();
             for id in &sids {
@@ -806,6 +814,7 @@ pub fn c01_chk_01_02(pea: &Pea, dnm: &str, g0: &ProcEngine) -> Result<(), Box<dy
                         trcn,
                     };
                     aojv.push(aoj);
+
                     let aojsb = aoj_sbv.entry(code.to_string()).or_default();
                     aojsb.push(sbid.to_string());
                 } // end aoj loop
@@ -2091,9 +2100,19 @@ pub fn c01_chk_03() -> Result<(), Box<dyn Error>> {
             let mut sids: Vec<_> = prov.subm.keys().collect();
             sids.sort();
             for sid in sids {
-                let Some(sb) = prov.subm.get(sid) else {
+                let Some(_sb) = prov.subm.get(sid) else {
                     continue;
                 };
+                // --- sub
+                let Ok(buf) = std::fs::read(format!("{DNM}/{sid}.bin")) else {
+                    //println!("PEA {sid} sub load error");
+                    continue;
+                };
+                let (sb, _): (PeaSub, usize) =
+                    bincode::decode_from_slice(&buf[..], bincode::config::standard()).unwrap();
+                //println!("PEA SUB {sid} - {}", peasb.aojv.len());
+
+                // --- sub row data 3
                 let Ok(buf) = std::fs::read(format!("{DNM}/{sid}-rw3.bin")) else {
                     continue;
                 };
